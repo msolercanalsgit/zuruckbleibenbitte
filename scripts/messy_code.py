@@ -20,7 +20,7 @@ offscreen_canvas = matrix.CreateFrameCanvas()
 font_big = graphics.Font()
 try:
     # Adjust path as needed for your setup
-    font_big.LoadFont("rpi-rgb-led-matrix/fonts/FixedBold-13.bdf")
+    font_big.LoadFont("rpi-rgb-led-matrix/fonts/spleen-12x24.bdf")
 except:
     try:
         font_big.LoadFont("fonts/FixedBold-13.bdf")
