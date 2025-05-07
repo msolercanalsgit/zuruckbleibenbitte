@@ -18,7 +18,7 @@ offscreen_canvas = matrix.CreateFrameCanvas()
 font_big = graphics.Font()
 try:
     # Adjust path as needed for your setup
-    font_big.LoadFont("fonts/spleen-12x24.bdf")
+    font_big.LoadFont("fonts/spleen-16x32.bdf")
 except:
     try:
         font_big.LoadFont("fonts/FixedBold-13.bdf")
