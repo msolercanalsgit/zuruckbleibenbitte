@@ -132,7 +132,7 @@ def update_code(first_screen, matrix, font_normal, textColor):
         
         # Expected files or directories that should exist in the repository
         # Update this list with actual important files in the repo
-        expected_files = ['README.md', 'main.py']
+        expected_files = ['test_file.py']
         
         success, repo_path = download_code(GITHUB_REPO_URL, CLONE_DIR, expected_files=expected_files)
         
@@ -164,7 +164,7 @@ matrix = RGBMatrix(options = options)
 first_screen = matrix.CreateFrameCanvas()
 
 font_normal = graphics.Font()
-font_normal.LoadFont("rpi-rgb-led-matrix/fonts/bfvlowermargen.bdf")
+font_normal.LoadFont("fonts/bfvlowermargen.bdf")
 textColor = graphics.Color(255, 1, 200)  # color of the text
 
 # Log script start
