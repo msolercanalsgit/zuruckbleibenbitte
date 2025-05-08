@@ -52,10 +52,10 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
         canvas.Clear()
         
         # Draw top scrolling line
-        graphics.DrawText(canvas, font_stock, top_pos, top_line_y_position, red_color, top_line)
+        graphics.DrawText(canvas, font_stock, top_pos, top_line_y_position, green_color, top_line)
         
         # Draw bottom scrolling line
-        graphics.DrawText(canvas, font_stock, bottom_pos, bottom_line_y_position, red_color, bottom_line)
+        graphics.DrawText(canvas, font_stock, bottom_pos, bottom_line_y_position, green_color, bottom_line)
         
         # Move positions one step to the left
         top_pos -= 1
