@@ -2,6 +2,64 @@ import time
 import sys
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
+def display_stock_market_mode(matrix, duration=30):
+    """
+    Display a stock market mode showing Meta and Google Gmbh with growth percentages.
+    
+    Args:
+        matrix: The initialized RGB matrix
+        duration: How long to display the stock market (in seconds)
+    """
+    # Create a canvas
+    canvas = matrix.CreateFrameCanvas()
+    
+    # Load the font for stock display
+    font_stock = graphics.Font()
+    try:
+        font_stock.LoadFont("fonts/bfvlowermargen.bdf")
+    except FileNotFoundError:
+        print("Error: Could not load font 'bfvlowermargen.bdf'.")
+        print("Please ensure the font file exists at the specified path.")
+        return
+    
+    # Set colors
+    text_color = graphics.Color(255, 255, 255)  # White for company names
+    green_color = graphics.Color(0, 255, 0)     # Green for positive percentages
+    
+    # Position settings
+    meta_y_position = 14      # Top line position
+    google_y_position = 28    # Bottom line position
+    
+    # Set start time
+    start_time = time.time()
+    
+    print("Starting stock market mode for 30 seconds")
+    
+    while time.time() - start_time < duration:
+        canvas.Clear()
+        
+        # Draw Meta on first line
+        meta_text_width = graphics.DrawText(canvas, font_stock, 5, meta_y_position, text_color, "Meta")
+        # Draw percentage for Meta (positioned after the company name)
+        graphics.DrawText(canvas, font_stock, 5 + meta_text_width + 10, meta_y_position, green_color, "+30%")
+        
+        # Draw Google on second line
+        google_text_width = graphics.DrawText(canvas, font_stock, 5, google_y_position, text_color, "Google Gmbh")
+        # Draw percentage for Google (positioned after the company name)
+        graphics.DrawText(canvas, font_stock, 5 + google_text_width + 10, google_y_position, green_color, "+45%")
+        
+        # Update the display
+        canvas = matrix.SwapOnVSync(canvas)
+        
+        # Small delay to control refresh rate
+        time.sleep(0.1)
+    
+    print("Stock market mode completed")
+    # Clear the canvas before returning
+    canvas.Clear()
+    matrix.SwapOnVSync(canvas)
+
+# Main script
 # Configuration for the matrix
 options = RGBMatrixOptions()
 options.rows = 32
@@ -27,13 +85,11 @@ except:
         print("Please ensure the font file exists at the specified path.")
         sys.exit(1)
 
-textColor = graphics.Color(255, 0, 0)  # Yellow color for text
+textColor = graphics.Color(255, 0, 0)  # Red color for text
 scroll_speed = 0.03  # Time in seconds between frame updates (lower is faster)
 
-# Vertical position adjusted to center the text - assuming font height around 24px
-# For a 32-row matrix, centering would be at approximately row 16
-# But we need to account for the baseline of the font, so we'll position around 20-22
-text_y_position = 24  # Center the text vertically (adjusted from 14)
+# Vertical position adjusted to center the text
+text_y_position = 24  # Center the text vertically
 
 # Initial position starts off-screen to the right
 pos = offscreen_canvas.width
@@ -47,6 +103,11 @@ display_time = 30
 
 try:
     print("Press CTRL-C to stop.")
+    
+    # First display the stock market mode
+    display_stock_market_mode(matrix)
+    
+    # Then continue with the number sequence display
     text_to_display = number_sequence[sequence_index]
     print(f"Displaying: {text_to_display} (for 30 seconds)")
     
