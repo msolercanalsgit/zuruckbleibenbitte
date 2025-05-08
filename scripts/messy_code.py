@@ -113,18 +113,18 @@ def display_negative_market_mode(matrix, duration=30, set_duration=4):
     bottom_line_y_position = 28   # Bottom line position
     
     # X positions for left and right columns
-    left_x_position = 5           # Left column position
-    right_x_position = 70         # Right column position (adjusted based on your spec)
+    left_x_position = 3           # Left column position
+    right_x_position = 100         # Right column position (adjusted based on your spec)
     
     # Define the stocks with negative percentages
     negative_stocks = [
-        "Apple ---12.4%", "Netflix ---11.2%", "Tesla ---38.9%", "Deutsche Bank ---23.5%",
-        "Sisyphos ---22.7%", "Kater Blau ---7.9%", "Microsoft ---8.5%", "Meta ---4.6%",
-        "Berghain ---45.6%", "Sisyphos ---18.7%", "Amazon ---17.3%", "SAP ---39.4%",
-        "Tresor ---31.2%", "Berghain ---9.1%", "BMW ---6.7%", "Tesla ---47.8%",
-        "KitKat ---10.4%", "About Blank ---6.3%", "Google ---29.8%", "Zalando ---8.8%",
-        "About Blank ---14.1%", "KitKat ---25.6%", "Siemens ---9.6%", "Siemens ---13.4%",
-        "Griessmuehle ---27.9%", "Tresor ---30.2%", "Adobe ---19.2%", "BMW ---15.0%"
+        "AAPL ---12.4%", "NFLX ---11.2%", "TSLA ---38.9%", "DB ---23.5%",
+        "SSPH ---22.7%", "KBLAU ---7.9%", "MSFT ---8.5%", "META ---4.6%",
+        "BRGHN ---45.6%", "SSPH ---18.7%", "AMZN ---17.3%", "SAP ---39.4%",
+        "TRSR ---31.2%", "BRGHN ---9.1%", "BMW ---6.7%", "TSLA ---47.8%",
+        "KTKT ---10.4%", "ABLNK ---6.3%", "GOOG ---29.8%", "ZLNDO ---8.8%",
+        "ABLNK ---14.1%", "KTKT ---25.6%", "SIEM ---9.6%", "SIEM ---13.4%",
+        "GRSM ---27.9%", "TRSR ---30.2%", "ADBE ---19.2%", "BMW ---15.0%"
     ]
     
     # Group stocks into sets of 4
@@ -234,7 +234,7 @@ try:
     print("Press CTRL-C to stop.")
     
     # First display the negative market mode
-    display_negative_market_mode(matrix, duration=30, pair_duration=4)
+    display_negative_market_mode(matrix, duration=30, set_duration=4)
     
     # Then display the stock market mode
     display_stock_market_mode(matrix, duration=30, scroll_speed=scroll_speed)
