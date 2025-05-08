@@ -83,13 +83,14 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
 
 def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     """
-    Display a negative market mode showing stationary pairs of stocks with negative percentages.
-    Each pair is displayed for 4 seconds.
+    Display a negative market mode showing 4 stocks simultaneously, 
+    each in its own quadrant of the screen.
+    Each set of 4 stocks is displayed for 4 seconds.
     
     Args:
         matrix: The initialized RGB matrix
         duration: Total time to display the negative market mode (in seconds)
-        pair_duration: Time to display each pair of stocks (in seconds)
+        pair_duration: Time to display each set of 4 stocks (in seconds)
     """
     # Create a canvas
     canvas = matrix.CreateFrameCanvas()
@@ -106,60 +107,55 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     # Set color - all text in red
     red_color = graphics.Color(255, 0, 0)
     
-    # Position settings
-    top_line_y_position = 14      # Top line position
-    bottom_line_y_position = 28   # Bottom line position
+    # Position settings for 4 quadrants
+    # Dividing the 32-row display into 4 rows (positions at approx 8, 16, 24, 32)
+    # But accounting for font baseline, we'll adjust slightly
+    positions_y = [8, 16, 24, 31]
     
-    # Define the pairs of stocks with negative percentages
-    stock_pairs = [
-        # Each tuple contains (top_stock, bottom_stock)
-        ("Apple ---12.4%", "Netflix ---11.2%"),
-        ("Tesla ---38.9%", "Deutsche Bank ---23.5%"),
-        ("Sisyphos ---22.7%", "Kater Blau ---7.9%"),
-        ("Microsoft ---8.5%", "Meta ---4.6%"),
-        ("Berghain ---45.6%", "Sisyphos ---18.7%"),
-        ("Amazon ---17.3%", "SAP ---39.4%"),
-        ("Tresor ---31.2%", "Berghain ---9.1%"),
-        ("BMW ---6.7%", "Tesla ---47.8%"),
-        ("KitKat ---10.4%", "About Blank ---6.3%"),
-        ("Google ---29.8%", "Zalando ---8.8%"),
-        ("About Blank ---14.1%", "KitKat ---25.6%"),
-        ("Siemens ---9.6%", "Siemens ---13.4%"),
-        ("Griessmuehle ---27.9%", "Tresor ---30.2%"),
-        ("Adobe ---19.2%", "BMW ---15.0%")
+    # Define the stocks with negative percentages
+    negative_stocks = [
+        "Apple ---12.4%", "Netflix ---11.2%", "Tesla ---38.9%", "Deutsche Bank ---23.5%",
+        "Sisyphos ---22.7%", "Kater Blau ---7.9%", "Microsoft ---8.5%", "Meta ---4.6%",
+        "Berghain ---45.6%", "Sisyphos ---18.7%", "Amazon ---17.3%", "SAP ---39.4%",
+        "Tresor ---31.2%", "Berghain ---9.1%", "BMW ---6.7%", "Tesla ---47.8%",
+        "KitKat ---10.4%", "About Blank ---6.3%", "Google ---29.8%", "Zalando ---8.8%",
+        "About Blank ---14.1%", "KitKat ---25.6%", "Siemens ---9.6%", "Siemens ---13.4%",
+        "Griessmuehle ---27.9%", "Tresor ---30.2%", "Adobe ---19.2%", "BMW ---15.0%"
     ]
+    
+    # Group stocks into sets of 4
+    stock_sets = [negative_stocks[i:i+4] for i in range(0, len(negative_stocks), 4)]
     
     # Set start time
     start_time = time.time()
-    pair_index = 0
-    pair_start_time = time.time()
+    set_index = 0
+    set_start_time = time.time()
     
     print("Starting negative market mode for", duration, "seconds")
     
     while time.time() - start_time < duration:
-        # Check if it's time to change to the next pair
+        # Check if it's time to change to the next set of 4 stocks
         current_time = time.time()
-        if current_time - pair_start_time >= pair_duration:
-            pair_index = (pair_index + 1) % len(stock_pairs)
-            pair_start_time = current_time
-            print(f"Displaying pair {pair_index + 1}/{len(stock_pairs)}: {stock_pairs[pair_index]}")
+        if current_time - set_start_time >= pair_duration:
+            set_index = (set_index + 1) % len(stock_sets)
+            set_start_time = current_time
+            print(f"Displaying set {set_index + 1}/{len(stock_sets)}: {stock_sets[set_index]}")
         
-        # Get current pair
-        top_stock, bottom_stock = stock_pairs[pair_index]
+        # Get current set of 4 stocks
+        current_stocks = stock_sets[set_index]
         
         # Clear the canvas
         canvas.Clear()
         
-        # Center the text horizontally
-        top_text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, top_stock)
-        bottom_text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, bottom_stock)
-        
-        top_x_position = (canvas.width - top_text_width) // 2
-        bottom_x_position = (canvas.width - bottom_text_width) // 2
-        
-        # Draw the stationary stock text
-        graphics.DrawText(canvas, font_stock, top_x_position, top_line_y_position, red_color, top_stock)
-        graphics.DrawText(canvas, font_stock, bottom_x_position, bottom_line_y_position, red_color, bottom_stock)
+        # Draw each of the 4 stocks in its own section of the screen
+        for i, stock in enumerate(current_stocks):
+            if i < len(positions_y):  # Safety check in case we have fewer than 4 stocks
+                # Center the text horizontally in each row
+                text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, stock)
+                x_position = (canvas.width - text_width) // 2
+                
+                # Draw the stock text in its designated position
+                graphics.DrawText(canvas, font_stock, x_position, positions_y[i], red_color, stock)
         
         # Update the display
         canvas = matrix.SwapOnVSync(canvas)
@@ -172,6 +168,7 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     # Clear the canvas before returning
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
+
 
 # Main script
 # Configuration for the matrix
