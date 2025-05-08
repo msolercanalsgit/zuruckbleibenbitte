@@ -2,7 +2,7 @@ import time
 import sys
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
-def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
+def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03, gpio_slowdown=4):
     """
     Display a stock market mode showing two scrolling lines of companies and their percentages.
     
@@ -10,6 +10,7 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
         matrix: The initialized RGB matrix
         duration: How long to display the stock market (in seconds)
         scroll_speed: Time between frame updates (should match main program)
+        gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
     """
     # Create a canvas
     canvas = matrix.CreateFrameCanvas()
@@ -81,7 +82,7 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
     matrix.SwapOnVSync(canvas)
 
 
-def display_negative_market_mode(matrix, duration=30, set_duration=4):
+def display_negative_market_mode(matrix, duration=30, set_duration=4, gpio_slowdown=4):
     """
     Display a negative market mode showing 4 stocks simultaneously,
     positioned in the four corners of the screen (top-left, top-right, bottom-left, bottom-right).
@@ -91,6 +92,7 @@ def display_negative_market_mode(matrix, duration=30, set_duration=4):
         matrix: The initialized RGB matrix
         duration: Total time to display the negative market mode (in seconds)
         set_duration: Time to display each set of 4 stocks (in seconds)
+        gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
     """
     # Create a canvas
     canvas = matrix.CreateFrameCanvas()
@@ -188,65 +190,57 @@ def display_negative_market_mode(matrix, duration=30, set_duration=4):
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
 
-# Main script
-# Configuration for the matrix
-options = RGBMatrixOptions()
-options.rows = 32
-options.cols = 192  # Adjust if your matrix width is different
-options.brightness = 100
-options.gpio_slowdown = 4
-options.disable_hardware_pulsing = 1
-options.hardware_mapping = 'adafruit-hat'
-options.pwm_lsb_nanoseconds = 100
-matrix = RGBMatrix(options=options)
-offscreen_canvas = matrix.CreateFrameCanvas()
 
-# Load the big font
-font_big = graphics.Font()
-try:
-    # Adjust path as needed for your setup
-    font_big.LoadFont("fonts/spleen-16x32.bdf")
-except:
+def display_number_sequence(matrix, duration=30, scroll_speed=0.03, gpio_slowdown=4):
+    """
+    Display a scrolling sequence of numbers.
+    
+    Args:
+        matrix: The initialized RGB matrix
+        duration: How long to display each number (in seconds)
+        scroll_speed: Time between frame updates
+        gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
+    """
+    # Create an offscreen canvas
+    offscreen_canvas = matrix.CreateFrameCanvas()
+    
+    # Load the big font
+    font_big = graphics.Font()
     try:
-        font_big.LoadFont("fonts/FixedBold-13.bdf")
-    except FileNotFoundError:
-        print("Error: Could not load font 'FixedBold-13.bdf'.")
-        print("Please ensure the font file exists at the specified path.")
-        sys.exit(1)
+        # Adjust path as needed for your setup
+        font_big.LoadFont("fonts/spleen-16x32.bdf")
+    except:
+        try:
+            font_big.LoadFont("fonts/FixedBold-13.bdf")
+        except FileNotFoundError:
+            print("Error: Could not load font 'FixedBold-13.bdf'.")
+            print("Please ensure the font file exists at the specified path.")
+            return
 
-textColor = graphics.Color(255, 0, 0)  # Red color for text
-scroll_speed = 0.03  # Time in seconds between frame updates (lower is faster)
-
-# Vertical position adjusted to center the text
-text_y_position = 24  # Center the text vertically
-
-# Initial position starts off-screen to the right
-pos = offscreen_canvas.width
-
-# Define the sequence of numbers to display
-number_sequence = ["301", "302", "142", "333"]
-sequence_index = 0
-
-# Time to display each number (in seconds)
-display_time = 30
-
-try:
-    print("Press CTRL-C to stop.")
+    # Set text color to red
+    textColor = graphics.Color(255, 0, 0)
     
-    # First display the negative market mode
-    display_negative_market_mode(matrix, duration=30, set_duration=4)
+    # Vertical position adjusted to center the text
+    text_y_position = 24  # Center the text vertically
     
-    # Then display the stock market mode
-    display_stock_market_mode(matrix, duration=30, scroll_speed=scroll_speed)
+    # Define the sequence of numbers to display
+    number_sequence = ["301", "302", "142", "333"]
+    sequence_index = 0
     
-    # Then continue with the number sequence display
+    # Start with the first number
     text_to_display = number_sequence[sequence_index]
-    print(f"Displaying: {text_to_display} (for 30 seconds)")
+    print(f"Displaying: {text_to_display} (for {duration} seconds)")
+    
+    # Initial position starts off-screen to the right
+    pos = offscreen_canvas.width
     
     # Track when we started displaying the current number
     start_time = time.time()
+    number_start_time = time.time()
     
-    while True:
+    print("Starting number sequence display for", duration, "seconds")
+    
+    while time.time() - start_time < duration:
         offscreen_canvas.Clear()
         
         # Draw the scrolling text
@@ -263,26 +257,109 @@ try:
         
         # Check if it's time to change to the next number
         current_time = time.time()
-        if current_time - start_time >= display_time:
+        if current_time - number_start_time >= duration / len(number_sequence):
             # Move to next number in the sequence
             sequence_index = (sequence_index + 1) % len(number_sequence)
             text_to_display = number_sequence[sequence_index]
-            print(f"Displaying: {text_to_display} (for 30 seconds)")
+            print(f"Displaying: {text_to_display}")
             
-            # Reset the timer
-            start_time = current_time
+            # Reset the timer for this number
+            number_start_time = current_time
         
         # Update the matrix display
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
         
         # Wait a bit to control scroll speed
         time.sleep(scroll_speed)
+    
+    print("Number sequence display completed")
+    
+    # Clear the canvas before returning
+    offscreen_canvas.Clear()
+    matrix.SwapOnVSync(offscreen_canvas)
+
+
+def initialize_matrix(gpio_slowdown=4):
+    """
+    Initialize and configure the RGB matrix.
+    
+    Args:
+        gpio_slowdown: GPIO slowdown value to use
         
-except KeyboardInterrupt:
-    print("Exiting.")
-    matrix.Clear()  # Clear the matrix display on exit
-    sys.exit(0)
-except Exception as e:
-    print(f"An error occurred: {e}")
-    matrix.Clear()
-    sys.exit(1)
+    Returns:
+        The configured RGB matrix object
+    """
+    # Configuration for the matrix
+    options = RGBMatrixOptions()
+    options.rows = 32
+    options.cols = 192  # Adjust if your matrix width is different
+    options.brightness = 100
+    options.gpio_slowdown = gpio_slowdown
+    options.disable_hardware_pulsing = 1
+    options.hardware_mapping = 'adafruit-hat'
+    options.pwm_lsb_nanoseconds = 100
+    
+    # Initialize and return the matrix
+    return RGBMatrix(options=options)
+
+
+def run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown):
+    """
+    Run through a full cycle of all display modes.
+    
+    Args:
+        matrix: The initialized RGB matrix
+        mode_duration: Duration for each display mode
+        scroll_speed: Scroll speed for scrolling displays
+        gpio_slowdown: GPIO slowdown value to use
+    """
+    print(f"\nRunning display cycle with GPIO slowdown = {gpio_slowdown}")
+    
+    # Display the negative market mode
+    display_negative_market_mode(matrix, duration=mode_duration, 
+                                set_duration=4, gpio_slowdown=gpio_slowdown)
+    
+    # Display the stock market mode
+    display_stock_market_mode(matrix, duration=mode_duration, 
+                             scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
+    
+    # Display the number sequence
+    display_number_sequence(matrix, duration=mode_duration, 
+                           scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
+
+
+def main():
+    # Set the default scroll speed and duration for each mode
+    scroll_speed = 0.03  # Time in seconds between frame updates (lower is faster)
+    mode_duration = 30   # Time in seconds to display each mode
+    
+    try:
+        print("Press CTRL-C to stop.")
+        
+        # Main display loop - alternate between GPIO slowdown values
+        while True:
+            # First run with gpio_slowdown = 4
+            gpio_slowdown = 4
+            matrix = initialize_matrix(gpio_slowdown)
+            run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown)
+            
+            # Then run with gpio_slowdown = 2
+            gpio_slowdown = 2
+            matrix = initialize_matrix(gpio_slowdown)
+            run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown)
+            
+    except KeyboardInterrupt:
+        print("Exiting.")
+        matrix.Clear()  # Clear the matrix display on exit
+        sys.exit(0)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        try:
+            matrix.Clear()
+        except:
+            pass
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
