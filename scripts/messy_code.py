@@ -1,7 +1,173 @@
 import time
 import sys
+import random
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
+def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_slowdown=4):
+    """
+    Display a negative market mode with randomly colored letters.
+    Stocks are displayed in the four corners of the screen, with random letters 
+    occasionally flashing in different colors for 0.5 seconds.
+    
+    Args:
+        matrix: The initialized RGB matrix
+        duration: Total time to display the mode (in seconds)
+        set_duration: Time to display each set of 4 stocks (in seconds)
+        gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
+    """
+    import random
+    
+    # Create a canvas
+    canvas = matrix.CreateFrameCanvas()
+    
+    # Load the font for stock display
+    font_stock = graphics.Font()
+    try:
+        font_stock.LoadFont("fonts/bfvlowermargen.bdf")
+    except FileNotFoundError:
+        print("Error: Could not load font 'bfvlowermargen.bdf'.")
+        print("Please ensure the font file exists at the specified path.")
+        return
+    
+    # Set base color - text in red
+    red_color = graphics.Color(255, 0, 0)
+    
+    # Define alternate flash colors
+    flash_colors = [
+        graphics.Color(0, 255, 0),     # Green
+        graphics.Color(255, 255, 0),   # Yellow
+        graphics.Color(255, 165, 0),   # Orange
+        graphics.Color(0, 255, 255),   # Cyan
+        graphics.Color(255, 0, 255)    # Magenta
+    ]
+    
+    # Position settings for 4 quadrants
+    # Y positions for top and bottom rows
+    top_line_y_position = 14      # Top line position
+    bottom_line_y_position = 28   # Bottom line position
+    
+    # X positions for left and right columns
+    left_x_position = 3           # Left column position
+    right_x_position = 100        # Right column position
+    
+    # Define the stocks with negative percentages
+    negative_stocks = [
+        "AAPL ---12.4%", "NFLX ---11.2%", "TSLA ---38.9%", "DB ---23.5%",
+        "SSPH ---22.7%", "KBLAU ---7.9%", "MSFT ---8.5%", "META ---4.6%",
+        "BRGHN ---45.6%", "SSPH ---18.7%", "AMZN ---17.3%", "SAP ---39.4%",
+        "TRSR ---31.2%", "BRGHN ---9.1%", "BMW ---6.7%", "TSLA ---47.8%",
+        "KTKT ---10.4%", "ABLNK ---6.3%", "GOOG ---29.8%", "ZLNDO ---8.8%",
+        "ABLNK ---14.1%", "KTKT ---25.6%", "SIEM ---9.6%", "SIEM ---13.4%",
+        "GRSM ---27.9%", "TRSR ---30.2%", "ADBE ---19.2%", "BMW ---15.0%"
+    ]
+    
+    # Group stocks into sets of 4
+    stock_sets = [negative_stocks[i:i+4] for i in range(0, len(negative_stocks), 4)]
+    
+    # Set start time
+    start_time = time.time()
+    set_index = 0
+    set_start_time = time.time()
+    
+    # Initialize color flash timing variables
+    flash_state = False  # Whether we're currently in a color flash state
+    next_flash_time = time.time() + random.uniform(1.5, 2.5)  # Time for next color flash
+    flash_end_time = 0  # When the current flash should end
+    
+    # For tracking which characters will flash in which colors
+    flash_chars = {}  # Will hold positions and colors for flashing characters
+    
+    print("Starting color flash market mode for", duration, "seconds")
+    
+    while time.time() - start_time < duration:
+        current_time = time.time()
+        
+        # Check if it's time to change to the next set of 4 stocks
+        if current_time - set_start_time >= set_duration:
+            set_index = (set_index + 1) % len(stock_sets)
+            set_start_time = current_time
+            print(f"Displaying set {set_index + 1}/{len(stock_sets)}: {stock_sets[set_index]}")
+            # Reset flash state when changing stock sets
+            flash_state = False
+            next_flash_time = current_time + random.uniform(1.5, 2.5)
+        
+        # Get current set of 4 stocks
+        current_stocks = stock_sets[set_index]
+        
+        # Check if we need to start or end a flash
+        if not flash_state and current_time >= next_flash_time:
+            # Start a new flash
+            flash_state = True
+            flash_end_time = current_time + 0.5  # Flash for 0.5 seconds
+            
+            # Determine which characters to flash and what colors to use
+            flash_chars = {}
+            
+            # For each stock string, randomly select 1-3 character positions to flash
+            for stock_idx, stock in enumerate(current_stocks[:min(4, len(current_stocks))]):
+                num_chars_to_flash = random.randint(1, min(3, len(stock)))
+                positions = random.sample(range(len(stock)), num_chars_to_flash)
+                
+                for pos in positions:
+                    # Assign a random color from our flash colors
+                    flash_chars[(stock_idx, pos)] = random.choice(flash_colors)
+            
+            print(f"Flashing {len(flash_chars)} characters for 0.5 seconds")
+        
+        elif flash_state and current_time >= flash_end_time:
+            # End the flash
+            flash_state = False
+            next_flash_time = current_time + random.uniform(1.5, 2.5)  # Schedule next flash
+            print(f"Normal display for ~{round(next_flash_time - current_time, 1)} seconds")
+        
+        # Clear the canvas
+        canvas.Clear()
+        
+        # Draw each of the 4 stocks in its designated corner
+        stock_positions = [
+            (left_x_position, top_line_y_position),      # Top-left
+            (right_x_position, top_line_y_position),     # Top-right
+            (left_x_position, bottom_line_y_position),   # Bottom-left
+            (right_x_position, bottom_line_y_position)   # Bottom-right
+        ]
+        
+        # Make sure we have stocks to display
+        displayed_stocks = min(len(current_stocks), 4)
+        for i in range(displayed_stocks):
+            stock = current_stocks[i]
+            x_pos, y_pos = stock_positions[i]
+            
+            if flash_state:
+                # Draw character by character with some flashing
+                for char_idx, char in enumerate(stock):
+                    # Determine the color for this character
+                    if (i, char_idx) in flash_chars:
+                        char_color = flash_chars[(i, char_idx)]
+                    else:
+                        char_color = red_color
+                    
+                    # Calculate position for this character
+                    # This is an approximation; character width varies with proportional fonts
+                    # For monospace fonts, you can multiply by a fixed width
+                    char_x = x_pos + char_idx * 6  # Assuming average 6 pixels per character
+                    
+                    # Draw the character
+                    graphics.DrawText(canvas, font_stock, char_x, y_pos, char_color, char)
+            else:
+                # Regular display - draw the entire stock ticker in red
+                graphics.DrawText(canvas, font_stock, x_pos, y_pos, red_color, stock)
+        
+        # Update the display
+        canvas = matrix.SwapOnVSync(canvas)
+        
+        # Small delay for refresh rate
+        time.sleep(0.05)  # Faster refresh during flashing
+    
+    print("Color flash market mode completed")
+    
+    # Clear the canvas before returning
+    canvas.Clear()
+    matrix.SwapOnVSync(canvas)
 def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03, gpio_slowdown=4):
     """
     Display a stock market mode showing two scrolling lines of companies and their percentages.
@@ -315,6 +481,9 @@ def run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown):
     """
     print(f"\nRunning display cycle with GPIO slowdown = {gpio_slowdown}")
     
+    display_color_flash_market_mode(matrix, duration=mode_duration,
+                              set_duration=4, gpio_slowdown=gpio_slowdown)
+
     # Display the negative market mode
     display_negative_market_mode(matrix, duration=mode_duration, 
                                 set_duration=4, gpio_slowdown=gpio_slowdown)
