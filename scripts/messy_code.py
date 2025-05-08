@@ -71,7 +71,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     
     # Initialize color flash timing variables
     flash_state = False  # Whether we're currently in a color flash state
-    next_flash_time = time.time() + random.uniform(1.5, 2.5)  # Time for next color flash
+    next_flash_time = time.time() + random.uniform(0.75, 1.25)  # Time for next color flash (~ every 1 second)
     flash_end_time = 0  # When the current flash should end
     
     # For tracking which characters will flash in which colors
@@ -117,7 +117,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
         elif flash_state and current_time >= flash_end_time:
             # End the flash
             flash_state = False
-            next_flash_time = current_time + random.uniform(1.5, 2.5)  # Schedule next flash
+            next_flash_time = current_time + random.uniform(0.75, 1.25)  # Schedule next flash (~every 1 second)
             print(f"Normal display for ~{round(next_flash_time - current_time, 1)} seconds")
         
         # Clear the canvas
@@ -168,6 +168,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     # Clear the canvas before returning
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
+    
 def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03, gpio_slowdown=4):
     """
     Display a stock market mode showing two scrolling lines of companies and their percentages.
