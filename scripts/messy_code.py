@@ -2,14 +2,15 @@ import time
 import sys
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
-def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
+def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     """
-    Display a stock market mode showing two scrolling lines of companies and their percentages.
+    Display a negative market mode showing stationary pairs of stocks with negative percentages.
+    Each pair is displayed for 4 seconds.
     
     Args:
         matrix: The initialized RGB matrix
-        duration: How long to display the stock market (in seconds)
-        scroll_speed: Time between frame updates (should match main program)
+        duration: Total time to display the negative market mode (in seconds)
+        pair_duration: Time to display each pair of stocks (in seconds)
     """
     # Create a canvas
     canvas = matrix.CreateFrameCanvas()
@@ -24,57 +25,70 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
         return
     
     # Set color - all text in red
-    green_color = graphics.Color(0, 0, 255)
+    red_color = graphics.Color(255, 0, 0)
     
     # Position settings
     top_line_y_position = 14      # Top line position
     bottom_line_y_position = 28   # Bottom line position
     
-    # Define the ticker text for both lines
-    top_line = "Apple +12.4%   Tesla +38.9%   Sisyphos +22.7%   Microsoft +8.5%   Berghain +45.6%   Amazon +17.3%   Tresor +31.2%   BMW +6.7%   KitKat +10.4%   Google +29.8%   About Blank +14.1%   Siemens +9.6%   Griessmuehle +27.9%   Adobe +19.2%"
-    bottom_line = "Netflix +11.2%   Deutsche Bank +23.5%   Kater Blau +7.9%   Meta +4.6%   Sisyphos +18.7%   SAP +39.4%   Berghain +9.1%   Tesla +47.8%   About Blank +6.3%   Zalando +8.8%   KitKat +25.6%   Siemens +13.4%   Tresor +30.2%   BMW +15.0%"
-    
-    # Get the width of text to set initial positions
-    canvas.Clear()
-    top_line_width = graphics.DrawText(canvas, font_stock, 0, 0, green_color, top_line)
-    bottom_line_width = graphics.DrawText(canvas, font_stock, 0, 0, green_color, bottom_line)
-    
-    # Initial positions - start from right edge
-    top_pos = canvas.width
-    bottom_pos = canvas.width
+    # Define the pairs of stocks with negative percentages
+    stock_pairs = [
+        # Each tuple contains (top_stock, bottom_stock)
+        ("Apple ---12.4%", "Netflix ---11.2%"),
+        ("Tesla ---38.9%", "Deutsche Bank ---23.5%"),
+        ("Sisyphos ---22.7%", "Kater Blau ---7.9%"),
+        ("Microsoft ---8.5%", "Meta ---4.6%"),
+        ("Berghain ---45.6%", "Sisyphos ---18.7%"),
+        ("Amazon ---17.3%", "SAP ---39.4%"),
+        ("Tresor ---31.2%", "Berghain ---9.1%"),
+        ("BMW ---6.7%", "Tesla ---47.8%"),
+        ("KitKat ---10.4%", "About Blank ---6.3%"),
+        ("Google ---29.8%", "Zalando ---8.8%"),
+        ("About Blank ---14.1%", "KitKat ---25.6%"),
+        ("Siemens ---9.6%", "Siemens ---13.4%"),
+        ("Griessmuehle ---27.9%", "Tresor ---30.2%"),
+        ("Adobe ---19.2%", "BMW ---15.0%")
+    ]
     
     # Set start time
     start_time = time.time()
+    pair_index = 0
+    pair_start_time = time.time()
     
-    print("Starting stock market ticker mode for", duration, "seconds")
+    print("Starting negative market mode for", duration, "seconds")
     
     while time.time() - start_time < duration:
+        # Check if it's time to change to the next pair
+        current_time = time.time()
+        if current_time - pair_start_time >= pair_duration:
+            pair_index = (pair_index + 1) % len(stock_pairs)
+            pair_start_time = current_time
+            print(f"Displaying pair {pair_index + 1}/{len(stock_pairs)}: {stock_pairs[pair_index]}")
+        
+        # Get current pair
+        top_stock, bottom_stock = stock_pairs[pair_index]
+        
+        # Clear the canvas
         canvas.Clear()
         
-        # Draw top scrolling line
-        graphics.DrawText(canvas, font_stock, top_pos, top_line_y_position, green_color, top_line)
+        # Center the text horizontally
+        top_text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, top_stock)
+        bottom_text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, bottom_stock)
         
-        # Draw bottom scrolling line
-        graphics.DrawText(canvas, font_stock, bottom_pos, bottom_line_y_position, green_color, bottom_line)
+        top_x_position = (canvas.width - top_text_width) // 2
+        bottom_x_position = (canvas.width - bottom_text_width) // 2
         
-        # Move positions one step to the left
-        top_pos -= 1
-        bottom_pos -= 1
-        
-        # If text has scrolled off the left edge, reset to right
-        if top_pos + top_line_width < 0:
-            top_pos = canvas.width
-        
-        if bottom_pos + bottom_line_width < 0:
-            bottom_pos = canvas.width
+        # Draw the stationary stock text
+        graphics.DrawText(canvas, font_stock, top_x_position, top_line_y_position, red_color, top_stock)
+        graphics.DrawText(canvas, font_stock, bottom_x_position, bottom_line_y_position, red_color, bottom_stock)
         
         # Update the display
         canvas = matrix.SwapOnVSync(canvas)
         
-        # Control the scrolling speed - match the main program's scroll speed
-        time.sleep(scroll_speed)
+        # Small delay for refresh rate
+        time.sleep(0.1)
     
-    print("Stock market ticker mode completed")
+    print("Negative market mode completed")
     
     # Clear the canvas before returning
     canvas.Clear()
@@ -125,7 +139,10 @@ display_time = 30
 try:
     print("Press CTRL-C to stop.")
     
-    # First display the stock market mode - passing the same scroll_speed
+    # First display the negative market mode
+    display_negative_market_mode(matrix, duration=30, pair_duration=4)
+    
+    # Then display the stock market mode
     display_stock_market_mode(matrix, duration=30, scroll_speed=scroll_speed)
     
     # Then continue with the number sequence display
