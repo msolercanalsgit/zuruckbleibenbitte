@@ -7,7 +7,7 @@ options = RGBMatrixOptions()
 options.rows = 32
 options.cols = 192  # Adjust if your matrix width is different
 options.brightness = 100
-options.gpio_slowdown = 5
+options.gpio_slowdown = 4
 options.disable_hardware_pulsing = 1
 options.hardware_mapping = 'adafruit-hat'
 options.pwm_lsb_nanoseconds = 100
@@ -27,13 +27,13 @@ except:
         print("Please ensure the font file exists at the specified path.")
         sys.exit(1)
 
-textColor = graphics.Color(255, 255, 0)  # Yellow color for text
+textColor = graphics.Color(255, 0, 0)  # Yellow color for text
 scroll_speed = 0.03  # Time in seconds between frame updates (lower is faster)
 
 # Vertical position adjusted to center the text - assuming font height around 24px
 # For a 32-row matrix, centering would be at approximately row 16
 # But we need to account for the baseline of the font, so we'll position around 20-22
-text_y_position = 22  # Center the text vertically (adjusted from 14)
+text_y_position = 24  # Center the text vertically (adjusted from 14)
 
 # Initial position starts off-screen to the right
 pos = offscreen_canvas.width
