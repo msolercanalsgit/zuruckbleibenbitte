@@ -81,16 +81,16 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03):
     matrix.SwapOnVSync(canvas)
 
 
-def display_negative_market_mode(matrix, duration=30, pair_duration=4):
+def display_negative_market_mode(matrix, duration=30, set_duration=4):
     """
-    Display a negative market mode showing 4 stocks simultaneously, 
-    each in its own quadrant of the screen.
+    Display a negative market mode showing 4 stocks simultaneously,
+    positioned in the four corners of the screen (top-left, top-right, bottom-left, bottom-right).
     Each set of 4 stocks is displayed for 4 seconds.
     
     Args:
         matrix: The initialized RGB matrix
         duration: Total time to display the negative market mode (in seconds)
-        pair_duration: Time to display each set of 4 stocks (in seconds)
+        set_duration: Time to display each set of 4 stocks (in seconds)
     """
     # Create a canvas
     canvas = matrix.CreateFrameCanvas()
@@ -108,9 +108,13 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     red_color = graphics.Color(255, 0, 0)
     
     # Position settings for 4 quadrants
-    # Dividing the 32-row display into 4 rows (positions at approx 8, 16, 24, 32)
-    # But accounting for font baseline, we'll adjust slightly
-    positions_y = [8, 16, 24, 31]
+    # Y positions for top and bottom rows
+    top_line_y_position = 14      # Top line position
+    bottom_line_y_position = 28   # Bottom line position
+    
+    # X positions for left and right columns
+    left_x_position = 5           # Left column position
+    right_x_position = 70         # Right column position (adjusted based on your spec)
     
     # Define the stocks with negative percentages
     negative_stocks = [
@@ -136,7 +140,7 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     while time.time() - start_time < duration:
         # Check if it's time to change to the next set of 4 stocks
         current_time = time.time()
-        if current_time - set_start_time >= pair_duration:
+        if current_time - set_start_time >= set_duration:
             set_index = (set_index + 1) % len(stock_sets)
             set_start_time = current_time
             print(f"Displaying set {set_index + 1}/{len(stock_sets)}: {stock_sets[set_index]}")
@@ -147,15 +151,30 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
         # Clear the canvas
         canvas.Clear()
         
-        # Draw each of the 4 stocks in its own section of the screen
-        for i, stock in enumerate(current_stocks):
-            if i < len(positions_y):  # Safety check in case we have fewer than 4 stocks
-                # Center the text horizontally in each row
-                text_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, stock)
-                x_position = (canvas.width - text_width) // 2
-                
-                # Draw the stock text in its designated position
-                graphics.DrawText(canvas, font_stock, x_position, positions_y[i], red_color, stock)
+        # Draw each of the 4 stocks in its designated corner
+        # Make sure we have 4 stocks in the current set
+        if len(current_stocks) >= 4:
+            # Top-left corner
+            graphics.DrawText(canvas, font_stock, left_x_position, top_line_y_position, red_color, current_stocks[0])
+            
+            # Top-right corner
+            graphics.DrawText(canvas, font_stock, right_x_position, top_line_y_position, red_color, current_stocks[1])
+            
+            # Bottom-left corner
+            graphics.DrawText(canvas, font_stock, left_x_position, bottom_line_y_position, red_color, current_stocks[2])
+            
+            # Bottom-right corner
+            graphics.DrawText(canvas, font_stock, right_x_position, bottom_line_y_position, red_color, current_stocks[3])
+        else:
+            # If we have fewer than 4 stocks in the set, place them in order
+            for i, stock in enumerate(current_stocks):
+                if i == 0:
+                    graphics.DrawText(canvas, font_stock, left_x_position, top_line_y_position, red_color, stock)
+                elif i == 1:
+                    graphics.DrawText(canvas, font_stock, right_x_position, top_line_y_position, red_color, stock)
+                elif i == 2:
+                    graphics.DrawText(canvas, font_stock, left_x_position, bottom_line_y_position, red_color, stock)
+                # No need for i == 3 since we've already checked if len >= 4
         
         # Update the display
         canvas = matrix.SwapOnVSync(canvas)
@@ -168,7 +187,6 @@ def display_negative_market_mode(matrix, duration=30, pair_duration=4):
     # Clear the canvas before returning
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
-
 
 # Main script
 # Configuration for the matrix
