@@ -32,13 +32,18 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     # Set base color - text in red
     red_color = graphics.Color(255, 0, 0)
     
-    # Define alternate flash colors
+    # Define refined flash colors - darker, more sophisticated palette
     flash_colors = [
-        graphics.Color(0, 255, 0),     # Green
-        graphics.Color(255, 255, 0),   # Yellow
-        graphics.Color(255, 165, 0),   # Orange
-        graphics.Color(0, 255, 255),   # Cyan
-        graphics.Color(255, 0, 255)    # Magenta
+        graphics.Color(128, 0, 128),   # Dark Purple
+        graphics.Color(0, 100, 0),     # Dark Green
+        graphics.Color(139, 0, 0),     # Dark Red
+        graphics.Color(25, 25, 112),   # Midnight Blue
+        graphics.Color(255, 255, 255), # White (contrast)
+        graphics.Color(255, 223, 0),   # Golden Yellow (complementary)
+        graphics.Color(70, 130, 180),  # Steel Blue
+        graphics.Color(128, 0, 0),     # Maroon
+        graphics.Color(85, 107, 47),   # Dark Olive Green
+        graphics.Color(75, 0, 130)     # Indigo
     ]
     
     # Position settings for 4 quadrants
@@ -71,7 +76,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     
     # Initialize color flash timing variables
     flash_state = False  # Whether we're currently in a color flash state
-    next_flash_time = time.time() + random.uniform(0.75, 1.25)  # Time for next color flash (~ every 1 second)
+    next_flash_time = time.time() + random.uniform(0.3, 0.7)  # Time for next color flash (faster cycling)
     flash_end_time = 0  # When the current flash should end
     
     # For tracking which characters will flash in which colors
@@ -103,9 +108,9 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
             # Determine which characters to flash and what colors to use
             flash_chars = {}
             
-            # For each stock string, randomly select 1-3 character positions to flash
+            # For each stock string, randomly select 3-5 character positions to flash
             for stock_idx, stock in enumerate(current_stocks[:min(4, len(current_stocks))]):
-                num_chars_to_flash = random.randint(1, min(3, len(stock)))
+                num_chars_to_flash = random.randint(3, min(5, len(stock)))
                 positions = random.sample(range(len(stock)), num_chars_to_flash)
                 
                 for pos in positions:
@@ -117,7 +122,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
         elif flash_state and current_time >= flash_end_time:
             # End the flash
             flash_state = False
-            next_flash_time = current_time + random.uniform(0.75, 1.25)  # Schedule next flash (~every 1 second)
+            next_flash_time = current_time + random.uniform(0.3, 0.8)  # Schedule next flash (faster, max 0.8 seconds)
             print(f"Normal display for ~{round(next_flash_time - current_time, 1)} seconds")
         
         # Clear the canvas
