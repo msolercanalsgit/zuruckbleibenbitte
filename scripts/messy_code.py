@@ -52,13 +52,13 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     
     # Define the stocks with negative percentages
     negative_stocks = [
-        "AAPL ---12.4%", "NFLX ---11.2%", "TSLA ---38.9%", "DB ---23.5%",
-        "SSPH ---22.7%", "KBLAU ---7.9%", "MSFT ---8.5%", "META ---4.6%",
-        "BRGHN ---45.6%", "SSPH ---18.7%", "AMZN ---17.3%", "SAP ---39.4%",
-        "TRSR ---31.2%", "BRGHN ---9.1%", "BMW ---6.7%", "TSLA ---47.8%",
-        "KTKT ---10.4%", "ABLNK ---6.3%", "GOOG ---29.8%", "ZLNDO ---8.8%",
-        "ABLNK ---14.1%", "KTKT ---25.6%", "SIEM ---9.6%", "SIEM ---13.4%",
-        "GRSM ---27.9%", "TRSR ---30.2%", "ADBE ---19.2%", "BMW ---15.0%"
+        "AAPL   -12.4%", "NFLX   -11.2%", "TSLA  -38.9%", "DB  -23.5%",
+        "SSPH   -22.7%", "KBLAU  -7.9%", "MSFT  -8.5%", "META  -4.6%",
+        "BRGHN   -45.6%", "SSPH  -18.7%", "AMZN  -17.3%", "SAP  -39.4%",
+        "TRSR   -31.2%", "BRGHN  -9.1%", "BMW  -6.7%", "TSLA  -47.8%",
+        "KTKT   -10.4%", "ABLNK  -6.3%", "GOOG  -29.8%", "ZLNDO  -8.8%",
+        "ABLNK   -14.1%", "KTKT  -25.6%", "SIEM  -9.6%", "SIEM  -13.4%",
+        "GRSM   -27.9%", "TRSR  -30.2%", "ADBE  -19.2%", "BMW  -15.0%"
     ]
     
     # Group stocks into sets of 4
@@ -287,13 +287,13 @@ def display_negative_market_mode(matrix, duration=30, set_duration=4, gpio_slowd
     
     # Define the stocks with negative percentages
     negative_stocks = [
-        "AAPL ---12.4%", "NFLX ---11.2%", "TSLA ---38.9%", "DB ---23.5%",
-        "SSPH ---22.7%", "KBLAU ---7.9%", "MSFT ---8.5%", "META ---4.6%",
-        "BRGHN ---45.6%", "SSPH ---18.7%", "AMZN ---17.3%", "SAP ---39.4%",
-        "TRSR ---31.2%", "BRGHN ---9.1%", "BMW ---6.7%", "TSLA ---47.8%",
-        "KTKT ---10.4%", "ABLNK ---6.3%", "GOOG ---29.8%", "ZLNDO ---8.8%",
-        "ABLNK ---14.1%", "KTKT ---25.6%", "SIEM ---9.6%", "SIEM ---13.4%",
-        "GRSM ---27.9%", "TRSR ---30.2%", "ADBE ---19.2%", "BMW ---15.0%"
+        "AAPL  -12.4%", "NFLX  -11.2%", "TSLA  -38.9%", "DB  -23.5%",
+        "SSPH  -22.7%", "KBLAU  -7.9%", "MSFT  -8.5%", "META  -4.6%",
+        "BRGHN  -45.6%", "SSPH  -18.7%", "AMZN  -17.3%", "SAP  -39.4%",
+        "TRSR  -31.2%", "BRGHN  -9.1%", "BMW  -6.7%", "TSLA  -47.8%",
+        "KTKT  -10.4%", "ABLNK  -6.3%", "GOOG  -29.8%", "ZLNDO  -8.8%",
+        "ABLNK  -14.1%", "KTKT  -25.6%", "SIEM  -9.6%", "SIEM  -13.4%",
+        "GRSM  -27.9%", "TRSR  -30.2%", "ADBE  -19.2%", "BMW  -15.0%"
     ]
     
     # Group stocks into sets of 4
