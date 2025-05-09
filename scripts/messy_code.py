@@ -169,7 +169,7 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
     
-def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03, gpio_slowdown=4):
+def display_stock_market_mode(matrix, top_line, bottom_line,  duration=30, scroll_speed=0.03, gpio_slowdown=4):
     """
     Display a stock market mode showing two scrolling lines of companies and their percentages.
     
@@ -197,11 +197,7 @@ def display_stock_market_mode(matrix, duration=30, scroll_speed=0.03, gpio_slowd
     # Position settings
     top_line_y_position = 14      # Top line position
     bottom_line_y_position = 28   # Bottom line position
-    
-    # Define the ticker text for both lines
-    top_line = "   Apple +12.4%   Tesla +38.9%   Sisyphos +22.7%   Microsoft +8.5%   Berghain +45.6%   Amazon +17.3%   Tresor +31.2%   BMW +6.7%   KitKat +10.4%   Google +29.8%   About Blank +14.1%   Siemens +9.6%   Griessmuehle +27.9%   Adobe +19.2%"
-    bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Kater Blau +7.9%   Meta +4.6%   Sisyphos +18.7%   SAP +39.4%   Berghain +9.1%   Tesla +47.8%   About Blank +6.3%   Zalando +8.8%   KitKat +25.6%   Siemens +13.4%   Tresor +30.2%   BMW +15.0%"
-        
+            
     # Get the width of text to set initial positions
     canvas.Clear()
     top_line_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, top_line)
@@ -490,9 +486,18 @@ def run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown):
                                 set_duration=4, gpio_slowdown=gpio_slowdown)
     
     # Display the stock market mode
-    display_stock_market_mode(matrix, duration=mode_duration, 
+    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   Berghain +45.6%   Google +29.8%   Tresor +31.2%   Adobe +19.2%"
+    bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Sisyphos +22.7%   Nvidia +42.3%   KitKat +10.4%   PayPal +19.5%   About Blank +14.1%   Disney +13.6%   Griessmuehle +27.9%   Oracle +21.4%"
+
+    display_stock_market_mode(matrix, top_line, bottom_line, duration=mode_duration, 
                              scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
     
+    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   BMW +6.7%   Google +29.8%   Siemens +9.6%   Adobe +19.2%"
+    bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Zalando +8.8%"
+
+    display_stock_market_mode(matrix, top_line, bottom_line, duration=mode_duration, 
+                             scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
+
     # Display the number sequence
     display_number_sequence(matrix, duration=mode_duration, 
                            scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
