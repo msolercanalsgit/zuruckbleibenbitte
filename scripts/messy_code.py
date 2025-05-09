@@ -243,7 +243,87 @@ def display_stock_market_mode(matrix, top_line, bottom_line,  duration=30, scrol
     # Clear the canvas before returning
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
-
+    
+def display_static_number_sequence(matrix, duration=30, gpio_slowdown=4):
+    """
+    Display a sequence of static numbers that change at fixed intervals.
+    
+    Args:
+        matrix: The initialized RGB matrix
+        duration: Total duration for the sequence (in seconds)
+        gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
+    """
+    # Create an offscreen canvas
+    offscreen_canvas = matrix.CreateFrameCanvas()
+    
+    # Load the big font
+    font_big = graphics.Font()
+    try:
+        # Adjust path as needed for your setup
+        font_big.LoadFont("fonts/spleen-16x32.bdf")
+    except:
+        try:
+            font_big.LoadFont("fonts/FixedBold-13.bdf")
+        except FileNotFoundError:
+            print("Error: Could not load font 'FixedBold-13.bdf'.")
+            print("Please ensure the font file exists at the specified path.")
+            return
+    
+    # Set text color to red
+    textColor = graphics.Color(255, 0, 0)
+    
+    # Vertical position adjusted to center the text vertically
+    text_y_position = 24  # Center the text vertically
+    
+    # Define the sequence of numbers to display
+    number_sequence = ["301", "302", "142", "333"]
+    sequence_index = 0
+    
+    # Start with the first number
+    text_to_display = number_sequence[sequence_index]
+    print(f"Displaying: {text_to_display}")
+    
+    # Track when we started the sequence
+    start_time = time.time()
+    number_start_time = time.time()
+    
+    print("Starting static number sequence display for", duration, "seconds")
+    
+    while time.time() - start_time < duration:
+        # Clear the canvas for the new frame
+        offscreen_canvas.Clear()
+        
+        # Calculate the width of the text to center it horizontally
+        text_width = graphics.DrawText(offscreen_canvas, font_big, 0, 0, textColor, text_to_display)
+        
+        # Calculate x position to center the text
+        x_position = max(0, (offscreen_canvas.width - text_width) // 2)
+        
+        # Draw the centered text
+        graphics.DrawText(offscreen_canvas, font_big, x_position, text_y_position, textColor, text_to_display)
+        
+        # Check if it's time to change to the next number
+        current_time = time.time()
+        if current_time - number_start_time >= duration / len(number_sequence):
+            # Move to next number in the sequence
+            sequence_index = (sequence_index + 1) % len(number_sequence)
+            text_to_display = number_sequence[sequence_index]
+            print(f"Displaying: {text_to_display}")
+            
+            # Reset the timer for this number
+            number_start_time = current_time
+        
+        # Update the matrix display
+        offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
+        
+        # Small sleep to prevent CPU hogging
+        time.sleep(0.1)
+    
+    print("Static number sequence display completed")
+    
+    # Clear the canvas before returning
+    offscreen_canvas.Clear()
+    matrix.SwapOnVSync(offscreen_canvas)
 
 def display_negative_market_mode(matrix, duration=30, set_duration=4, gpio_slowdown=4):
     """
@@ -501,12 +581,13 @@ def run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown):
     # Display the number sequence
     display_number_sequence(matrix, duration=mode_duration, 
                            scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
-
+    
+    display_static_number_sequence(matrix, duration=mode_duration, gpio_slowdown=gpio_slowdown)
 
 def main():
     # Set the default scroll speed and duration for each mode
     scroll_speed = 0.03  # Time in seconds between frame updates (lower is faster)
-    mode_duration = 30   # Time in seconds to display each mode
+    mode_duration = 60   # Time in seconds to display each mode
     
     try:
         print("Press CTRL-C to stop.")
