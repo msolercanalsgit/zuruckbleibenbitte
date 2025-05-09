@@ -2,6 +2,7 @@ import time
 import sys
 import random
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
+# test test test
 
 def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_slowdown=4):
     """
