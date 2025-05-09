@@ -177,12 +177,14 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
     
-def display_stock_market_mode(matrix, top_line, bottom_line,  duration=30, scroll_speed=0.03, gpio_slowdown=4):
+def display_stock_market_mode(matrix, top_line, bottom_line, duration=30, scroll_speed=0.03, gpio_slowdown=4):
     """
     Display a stock market mode showing two scrolling lines of companies and their percentages.
     
     Args:
         matrix: The initialized RGB matrix
+        top_line: Text for the top line
+        bottom_line: Text for the bottom line
         duration: How long to display the stock market (in seconds)
         scroll_speed: Time between frame updates (should match main program)
         gpio_slowdown: GPIO slowdown value to use (affects refresh rate)
@@ -199,21 +201,31 @@ def display_stock_market_mode(matrix, top_line, bottom_line,  duration=30, scrol
         print("Please ensure the font file exists at the specified path.")
         return
     
-    # Set color - all text in red
-    red_color = graphics.Color(0, 0, 255)
+    # Set color - all text in blue (you mentioned red_color but set blue value to 255)
+    text_color = graphics.Color(0, 0, 255)
     
     # Position settings
     top_line_y_position = 14      # Top line position
     bottom_line_y_position = 28   # Bottom line position
             
-    # Get the width of text to set initial positions
+    # Calculate the width of text
     canvas.Clear()
-    top_line_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, top_line)
-    bottom_line_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, bottom_line)
+    top_line_width = graphics.DrawText(canvas, font_stock, 0, 0, text_color, top_line)
+    bottom_line_width = graphics.DrawText(canvas, font_stock, 0, 0, text_color, bottom_line)
     
-    # Initial positions - start from right edge
-    top_pos = canvas.width
-    bottom_pos = canvas.width
+    # Create duplicated strings to ensure continuous display
+    # Add a space before duplicating to avoid text running together
+    top_line_full = top_line + "   " + top_line
+    bottom_line_full = bottom_line + "   " + bottom_line
+    
+    # Calculate full widths
+    top_full_width = graphics.DrawText(canvas, font_stock, 0, 0, text_color, top_line_full)
+    bottom_full_width = graphics.DrawText(canvas, font_stock, 0, 0, text_color, bottom_line_full)
+    
+    # Initial positions - we'll start with text already visible
+    # Start just at the edge of the screen
+    top_pos = 0
+    bottom_pos = 0
     
     # Set start time
     start_time = time.time()
@@ -223,31 +235,37 @@ def display_stock_market_mode(matrix, top_line, bottom_line,  duration=30, scrol
     while time.time() - start_time < duration:
         canvas.Clear()
         
-        # Draw top scrolling line
-        graphics.DrawText(canvas, font_stock, top_pos, top_line_y_position, red_color, top_line)
+        # Draw top scrolling line and its duplicate
+        graphics.DrawText(canvas, font_stock, top_pos, top_line_y_position, text_color, top_line_full)
+        # Draw a second copy to ensure continuous flow
+        graphics.DrawText(canvas, font_stock, top_pos + top_full_width, top_line_y_position, text_color, top_line_full)
         
-        # Draw bottom scrolling line
-        graphics.DrawText(canvas, font_stock, bottom_pos, bottom_line_y_position, red_color, bottom_line)
+        # Draw bottom scrolling line and its duplicate
+        graphics.DrawText(canvas, font_stock, bottom_pos, bottom_line_y_position, text_color, bottom_line_full)
+        # Draw a second copy to ensure continuous flow
+        graphics.DrawText(canvas, font_stock, bottom_pos + bottom_full_width, bottom_line_y_position, text_color, bottom_line_full)
         
         # Move positions one step to the left
         top_pos -= 1
         bottom_pos -= 1
         
-        # If text has scrolled off the left edge, reset to right
-        if top_pos + top_line_width < 0:
-            top_pos = canvas.width
+        # If the first copy has scrolled completely off, reset position
+        # This creates a seamless loop effect
+        if top_pos <= -top_line_width - 3:  # accounting for the spacing
+            top_pos = 0
         
-        if bottom_pos + bottom_line_width < 0:
-            bottom_pos = canvas.width
+        if bottom_pos <= -bottom_line_width - 3:  # accounting for the spacing
+            bottom_pos = 0
         
         # Update the display
         canvas = matrix.SwapOnVSync(canvas)
         
-        # Control the scrolling speed - match the main program's scroll speed
+        # Control the scrolling speed
         time.sleep(scroll_speed)
     
     print("Stock market ticker mode completed")
-    
+
+
     # Clear the canvas before returning
     canvas.Clear()
     matrix.SwapOnVSync(canvas)
