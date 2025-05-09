@@ -138,21 +138,24 @@ def display_color_flash_market_mode(matrix, duration=30, set_duration=4, gpio_sl
             x_pos, y_pos = stock_positions[i]
             
             if flash_state:
-                # Draw character by character with some flashing
+                # Draw the entire stock string normally first
+                graphics.DrawText(canvas, font_stock, x_pos, y_pos, red_color, stock)
+                
+                # Then overlay the flashing characters on top
                 for char_idx, char in enumerate(stock):
-                    # Determine the color for this character
                     if (i, char_idx) in flash_chars:
-                        char_color = flash_chars[(i, char_idx)]
-                    else:
-                        char_color = red_color
-                    
-                    # Calculate position for this character
-                    # This is an approximation; character width varies with proportional fonts
-                    # For monospace fonts, you can multiply by a fixed width
-                    char_x = x_pos + char_idx * 6  # Assuming average 6 pixels per character
-                    
-                    # Draw the character
-                    graphics.DrawText(canvas, font_stock, char_x, y_pos, char_color, char)
+                        # Get the character's x position by measuring the width of the text up to this point
+                        # For the first character, the offset is 0
+                        if char_idx == 0:
+                            char_x = x_pos
+                        else:
+                            # For subsequent characters, calculate the exact position
+                            # This measures the exact width of the preceding text
+                            prefix_width = graphics.DrawText(canvas, font_stock, 0, 0, red_color, stock[:char_idx])
+                            char_x = x_pos + prefix_width
+                        
+                        # Draw just this character with its flash color
+                        graphics.DrawText(canvas, font_stock, char_x, y_pos, flash_chars[(i, char_idx)], char)
             else:
                 # Regular display - draw the entire stock ticker in red
                 graphics.DrawText(canvas, font_stock, x_pos, y_pos, red_color, stock)
