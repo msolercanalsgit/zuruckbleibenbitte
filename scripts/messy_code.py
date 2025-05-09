@@ -486,14 +486,14 @@ def run_display_cycle(matrix, mode_duration, scroll_speed, gpio_slowdown):
                                 set_duration=4, gpio_slowdown=gpio_slowdown)
     
     # Display the stock market mode
-    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   Berghain +45.6%   Google +29.8%   Tresor +31.2%   Adobe +19.2%"
+    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   Berghain +45.6%   Google +29.8%   Tresor +31.2%   Adobe +19.2% SAP +39.4%   Sisyphos +22.7% Deutsche Bank +23.5%  Google +29.8%"
     bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Sisyphos +22.7%   Nvidia +42.3%   KitKat +10.4%   PayPal +19.5%   About Blank +14.1%   Disney +13.6%   Griessmuehle +27.9%   Oracle +21.4%"
 
     display_stock_market_mode(matrix, top_line, bottom_line, duration=mode_duration, 
                              scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
     
-    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   BMW +6.7%   Google +29.8%   Siemens +9.6%   Adobe +19.2%"
-    bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Zalando +8.8%"
+    top_line = "   Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   BMW +6.7%   Google +29.8%   Siemens +9.6%   Adobe +19.2% Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Zalando +8.8% Apple +12.4%"
+    bottom_line = "   Netflix +11.2%   Deutsche Bank +23.5%   Meta +4.6%   SAP +39.4%   Zalando +8.8% Apple +12.4%   Tesla +38.9%   Microsoft +8.5%   Amazon +17.3%   BMW +6.7%   Google +29.8%   Siemens +9.6%   Adobe +19.2%"
 
     display_stock_market_mode(matrix, top_line, bottom_line, duration=mode_duration, 
                              scroll_speed=scroll_speed, gpio_slowdown=gpio_slowdown)
