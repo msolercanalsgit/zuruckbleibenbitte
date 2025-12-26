@@ -14,7 +14,7 @@ FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
 
 GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
-EXPECTED_FILES = ['messy_code_old.py']
+EXPECTED_FILES = ['scripts/messy_code_old.py']
 
 # =============================================================================
 # VERSION TRACKING
