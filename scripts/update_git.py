@@ -157,16 +157,15 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             log_message(screen, matrix, font, text_color, "Fetching...", 1)
 
-            # Add safe directory to avoid git ownership errors when running as root
-            subprocess.run(
-                ['git', 'config', '--global', '--add', 'safe.directory', '*'],
-                capture_output=True, timeout=10
-            )
+            # Set git environment to disable ownership checks
+            git_env = os.environ.copy()
+            git_env['GIT_CONFIG_GLOBAL'] = '/dev/null'
+            git_env['GIT_CONFIG_SYSTEM'] = '/dev/null'
 
             # Fetch all changes
             result = subprocess.run(
-                ['git', '-C', repo_path, 'fetch', '--all'],
-                capture_output=True, text=True, timeout=60
+                ['git', '-c', 'safe.directory=*', '-C', repo_path, 'fetch', '--all'],
+                capture_output=True, text=True, timeout=60, env=git_env
             )
             if result.returncode != 0:
                 log_message(screen, matrix, font, text_color, f"Fetch fail: {result.returncode}")
@@ -176,8 +175,8 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             # Reset to origin/main
             result = subprocess.run(
-                ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
-                capture_output=True, text=True, timeout=60
+                ['git', '-c', 'safe.directory=*', '-C', repo_path, 'reset', '--hard', 'origin/main'],
+                capture_output=True, text=True, timeout=60, env=git_env
             )
             if result.returncode != 0:
                 log_message(screen, matrix, font, text_color, f"Reset fail: {result.returncode}")
