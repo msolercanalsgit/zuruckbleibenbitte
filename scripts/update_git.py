@@ -46,27 +46,28 @@ def display_version_info(screen, matrix, font, text_color, repo_path, update_suc
     """Display the current version on the LED screen for verification."""
     try:
         commit_hash, commit_date = get_git_version(repo_path)
-        
-        screen.Clear()
-        
-        if update_success:
-            # Line 1: Success message with commit hash
-            line1 = f"Updated: {commit_hash}"
-            # Line 2: Commit date
-            line2 = f"Date: {commit_date}"
-        else:
-            line1 = "Update FAILED!"
-            line2 = f"Local: {commit_hash}"
-        
-        graphics.DrawText(screen, font, 3, 14, text_color, line1)
-        graphics.DrawText(screen, font, 3, 28, text_color, line2)
-        matrix.SwapOnVSync(screen)
-        
+
+        if screen and matrix:
+            screen.Clear()
+
+            if update_success:
+                # Line 1: Success message with commit hash
+                line1 = f"Updated: {commit_hash}"
+                # Line 2: Commit date
+                line2 = f"Date: {commit_date}"
+            else:
+                line1 = "Update FAILED!"
+                line2 = f"Local: {commit_hash}"
+
+            graphics.DrawText(screen, font, 3, 14, text_color, line1)
+            graphics.DrawText(screen, font, 3, 28, text_color, line2)
+            matrix.SwapOnVSync(screen)
+
         # Display for 8 seconds so you can see it
         time.sleep(8)
-        
+
         print(f"Displayed version: {commit_hash} ({commit_date})")
-        
+
     except Exception as e:
         print(f"Error displaying version: {e}")
 
@@ -79,18 +80,19 @@ def log_message(screen, matrix, font, text_color, message, display_time=3):
     try:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"{timestamp}: {message}"
-        
+
         print(log_entry)
-        
+
         try:
             with open(LOG_FILE_PATH, "a") as log_file:
                 log_file.write(log_entry + "\n")
         except Exception as e:
             print(f"Could not write to log file: {e}")
 
-        screen.Clear()
-        graphics.DrawText(screen, font, 3, 14, text_color, message[:30])
-        matrix.SwapOnVSync(screen)
+        if screen and matrix:
+            screen.Clear()
+            graphics.DrawText(screen, font, 3, 14, text_color, message[:30])
+            matrix.SwapOnVSync(screen)
         time.sleep(display_time)
     except Exception as e:
         print(f"Logging/display error: {e}")
@@ -111,8 +113,9 @@ def check_internet(host="8.8.8.8", port=53, timeout=3):
 def clear_screen(screen, matrix):
     """Clear the LED screen."""
     try:
-        screen.Clear()
-        matrix.SwapOnVSync(screen)
+        if screen and matrix:
+            screen.Clear()
+            matrix.SwapOnVSync(screen)
     except Exception as e:
         print(f"Screen clear error: {e}")
 
@@ -157,15 +160,10 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             log_message(screen, matrix, font, text_color, "Fetching...", 1)
 
-            # Set git environment to disable ownership checks
-            git_env = os.environ.copy()
-            git_env['GIT_CONFIG_GLOBAL'] = '/dev/null'
-            git_env['GIT_CONFIG_SYSTEM'] = '/dev/null'
-
             # Fetch all changes
             result = subprocess.run(
-                ['git', '-c', 'safe.directory=*', '-C', repo_path, 'fetch', '--all'],
-                capture_output=True, text=True, timeout=60, env=git_env
+                ['git', '-C', repo_path, 'fetch', '--all'],
+                capture_output=True, text=True, timeout=60
             )
             if result.returncode != 0:
                 log_message(screen, matrix, font, text_color, f"Fetch fail: {result.returncode}")
@@ -175,8 +173,8 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             # Reset to origin/main
             result = subprocess.run(
-                ['git', '-c', 'safe.directory=*', '-C', repo_path, 'reset', '--hard', 'origin/main'],
-                capture_output=True, text=True, timeout=60, env=git_env
+                ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
+                capture_output=True, text=True, timeout=60
             )
             if result.returncode != 0:
                 log_message(screen, matrix, font, text_color, f"Reset fail: {result.returncode}")
@@ -212,22 +210,31 @@ def main():
     print(f"Started at: {datetime.datetime.now()}")
     print(f"Script location: {SCRIPT_DIR}")
     print("=" * 50)
-    
-    os.chdir(SCRIPT_DIR)
-    
-    try:
-        # Initialize the LED matrix
-        options = RGBMatrixOptions()
-        options.rows = 32
-        options.cols = 192
-        options.brightness = 100
-        options.gpio_slowdown = 5
-        options.disable_hardware_pulsing = 1
-        options.hardware_mapping = 'adafruit-hat'
-        options.pwm_lsb_nanoseconds = 100
 
-        matrix = RGBMatrix(options=options)
-        screen = matrix.CreateFrameCanvas()
+    os.chdir(SCRIPT_DIR)
+
+    matrix = None
+    screen = None
+
+    try:
+        # Initialize the LED matrix (requires root)
+        try:
+            options = RGBMatrixOptions()
+            options.rows = 32
+            options.cols = 192
+            options.brightness = 100
+            options.gpio_slowdown = 5
+            options.disable_hardware_pulsing = 1
+            options.hardware_mapping = 'adafruit-hat'
+            options.pwm_lsb_nanoseconds = 100
+
+            matrix = RGBMatrix(options=options)
+            screen = matrix.CreateFrameCanvas()
+        except Exception as e:
+            print(f"Cannot initialize LED matrix (need root): {e}")
+            print("Continuing without LED display...")
+            matrix = None
+            screen = None
 
         # Load font
         font_normal = graphics.Font()
@@ -265,14 +272,23 @@ def main():
         # DISPLAY VERSION INFO - This is the key verification step!
         # =================================================================
         display_version_info(screen, matrix, font_normal, text_color, repo_path, success)
-        
+
         clear_screen(screen, matrix)
+
+        # Properly release the matrix
+        del screen
+        del matrix
+
         print("Update script completed")
 
     except Exception as e:
         print(f"FATAL ERROR: {e}")
         import traceback
         traceback.print_exc()
+        try:
+            clear_screen(screen, matrix)
+        except:
+            pass
 
 
 if __name__ == "__main__":
