@@ -10,7 +10,7 @@ import datetime
 # =============================================================================
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_DIR = os.path.dirname(SCRIPT_DIR)
-FONTS_DIR = os.path.join(SCRIPT_DIR, "rpi-rgb-led-matrix/fonts")
+FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
 
 GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
