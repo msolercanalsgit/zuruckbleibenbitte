@@ -3,18 +3,16 @@ import subprocess
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 import time
 import socket
-import shutil
 import datetime
 
 # =============================================================================
 # PATH CONFIGURATION
 # =============================================================================
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR = os.path.dirname(SCRIPT_DIR)
 FONTS_DIR = os.path.join(SCRIPT_DIR, "rpi-rgb-led-matrix/fonts")
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
 
-# The repo will be cloned INTO the scripts folder (keeping your current structure)
-CLONE_DIR = SCRIPT_DIR
 GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
 EXPECTED_FILES = ['messy_code_old.py']
 
@@ -144,49 +142,39 @@ def verify_repository(repo_path, expected_files=None):
         return False
 
 
-def download_code(screen, matrix, font, text_color, repo_url, clone_dir, max_retries=5, expected_files=None):
-    """Clone or update the repository with retry logic."""
-    repo_name = repo_url.split("/")[-1].replace('.git', "")
-    repo_path = os.path.join(clone_dir, repo_name)
-    
+def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_retries=5, expected_files=None):
+    """Update the repository in place with retry logic."""
     print(f"Repository URL: {repo_url}")
-    print(f"Clone directory: {clone_dir}")
-    print(f"Full repo path: {repo_path}")
+    print(f"Repository path: {repo_path}")
 
     for attempt in range(1, max_retries + 1):
         try:
             log_message(screen, matrix, font, text_color, f"Update {attempt}/{max_retries}...")
 
-            if not os.path.exists(repo_path):
-                print(f"Cloning repository to {repo_path}...")
-                result = subprocess.run(
-                    ['git', 'clone', repo_url, repo_path],
-                    check=True, capture_output=True, text=True, timeout=120
-                )
-                print(f"Clone output: {result.stdout} {result.stderr}")
-            else:
-                print(f"Updating existing repository at {repo_path}...")
-                
-                # Fetch all changes
-                subprocess.run(
-                    ['git', '-C', repo_path, 'fetch', '--all'],
-                    check=True, capture_output=True, text=True, timeout=60
-                )
-                
-                # Reset to origin/main
-                subprocess.run(
-                    ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
-                    check=True, capture_output=True, text=True, timeout=60
-                )
-                print("Git fetch and reset completed")
+            if not os.path.exists(os.path.join(repo_path, '.git')):
+                print(f"No git repo found at {repo_path}, cannot update")
+                return False, repo_path
+
+            print(f"Updating repository at {repo_path}...")
+
+            # Fetch all changes
+            subprocess.run(
+                ['git', '-C', repo_path, 'fetch', '--all'],
+                check=True, capture_output=True, text=True, timeout=60
+            )
+
+            # Reset to origin/main
+            subprocess.run(
+                ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
+                check=True, capture_output=True, text=True, timeout=60
+            )
+            print("Git fetch and reset completed")
 
             if verify_repository(repo_path, expected_files):
                 return True, repo_path
             else:
                 log_message(screen, matrix, font, text_color, f"Verify failed #{attempt}")
-                if os.path.exists(repo_path):
-                    shutil.rmtree(repo_path)
-                    
+
         except subprocess.TimeoutExpired:
             log_message(screen, matrix, font, text_color, f"Timeout #{attempt}")
             time.sleep(5)
@@ -256,7 +244,7 @@ def main():
         # Perform the update
         success, repo_path = download_code(
             screen, matrix, font_normal, text_color,
-            GITHUB_REPO_URL, CLONE_DIR,
+            GITHUB_REPO_URL, REPO_DIR,
             expected_files=EXPECTED_FILES
         )
         
