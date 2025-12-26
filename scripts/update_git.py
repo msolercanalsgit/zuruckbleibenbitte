@@ -10,13 +10,13 @@ import datetime
 # PATH CONFIGURATION
 # =============================================================================
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
+FONTS_DIR = os.path.join(SCRIPT_DIR, "rpi-rgb-led-matrix/fonts")
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
 
 # The repo will be cloned INTO the scripts folder (keeping your current structure)
 CLONE_DIR = SCRIPT_DIR
 GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
-EXPECTED_FILES = ['test_file.py']
+EXPECTED_FILES = ['messy_code_old.py']
 
 # =============================================================================
 # VERSION TRACKING
