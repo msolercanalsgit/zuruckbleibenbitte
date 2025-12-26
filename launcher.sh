@@ -9,5 +9,6 @@ echo "Update script finished with exit code: $?" >> $LOGFILE
 echo "Sleeping 5 seconds..." >> $LOGFILE
 sleep 5
 echo "Running messy_code_old.py..." >> $LOGFILE
-sudo python3 scripts/messy_code_old.py
-echo "messy_code_old.py finished with exit code: $?" >> $LOGFILE
+sudo python3 scripts/messy_code_old.py 2>> $LOGFILE
+EXIT_CODE=$?
+echo "messy_code_old.py finished with exit code: $EXIT_CODE" >> $LOGFILE
