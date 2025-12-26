@@ -157,9 +157,9 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             log_message(screen, matrix, font, text_color, "Fetching...", 1)
 
-            # Add safe directory to avoid git ownership errors
+            # Add safe directory to avoid git ownership errors when running as root
             subprocess.run(
-                ['git', 'config', '--global', '--add', 'safe.directory', repo_path],
+                ['git', 'config', '--global', '--add', 'safe.directory', '*'],
                 capture_output=True, timeout=10
             )
 
