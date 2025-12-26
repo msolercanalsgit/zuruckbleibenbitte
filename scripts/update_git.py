@@ -6,17 +6,92 @@ import socket
 import shutil
 import datetime
 
-# Function to log messages with timestamp to both LED screen and log file
-def log_message(screen, matrix, font, text_color, message, log_file_path="log_timestamp.txt", display_time=5):
+# =============================================================================
+# PATH CONFIGURATION
+# =============================================================================
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
+LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
+
+# The repo will be cloned INTO the scripts folder (keeping your current structure)
+CLONE_DIR = SCRIPT_DIR
+GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
+EXPECTED_FILES = ['test_file.py']
+
+# =============================================================================
+# VERSION TRACKING
+# =============================================================================
+def get_git_version(repo_path):
+    """Get the current git commit hash and date from a repository."""
+    try:
+        # Get short commit hash (7 characters)
+        result = subprocess.run(
+            ['git', '-C', repo_path, 'rev-parse', '--short=7', 'HEAD'],
+            capture_output=True, text=True, timeout=10
+        )
+        commit_hash = result.stdout.strip() if result.returncode == 0 else "unknown"
+        
+        # Get commit date
+        result = subprocess.run(
+            ['git', '-C', repo_path, 'log', '-1', '--format=%cd', '--date=format:%d/%m %H:%M'],
+            capture_output=True, text=True, timeout=10
+        )
+        commit_date = result.stdout.strip() if result.returncode == 0 else ""
+        
+        return commit_hash, commit_date
+    except Exception as e:
+        print(f"Error getting git version: {e}")
+        return "error", ""
+
+
+def display_version_info(screen, matrix, font, text_color, repo_path, update_success):
+    """Display the current version on the LED screen for verification."""
+    try:
+        commit_hash, commit_date = get_git_version(repo_path)
+        
+        screen.Clear()
+        
+        if update_success:
+            # Line 1: Success message with commit hash
+            line1 = f"Updated: {commit_hash}"
+            # Line 2: Commit date
+            line2 = f"Date: {commit_date}"
+        else:
+            line1 = "Update FAILED!"
+            line2 = f"Local: {commit_hash}"
+        
+        graphics.DrawText(screen, font, 3, 14, text_color, line1)
+        graphics.DrawText(screen, font, 3, 28, text_color, line2)
+        matrix.SwapOnVSync(screen)
+        
+        # Display for 8 seconds so you can see it
+        time.sleep(8)
+        
+        print(f"Displayed version: {commit_hash} ({commit_date})")
+        
+    except Exception as e:
+        print(f"Error displaying version: {e}")
+
+
+# =============================================================================
+# LOGGING FUNCTION
+# =============================================================================
+def log_message(screen, matrix, font, text_color, message, display_time=3):
+    """Log messages to both the LED screen and a log file with timestamps."""
     try:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"{timestamp}: {message}"
-
-        with open(log_file_path, "a") as log_file:
-            log_file.write(log_entry + "\n")
+        
+        print(log_entry)
+        
+        try:
+            with open(LOG_FILE_PATH, "a") as log_file:
+                log_file.write(log_entry + "\n")
+        except Exception as e:
+            print(f"Could not write to log file: {e}")
 
         screen.Clear()
-        graphics.DrawText(screen, font, 3, 14, text_color, message[:30])  # Truncate to avoid overflow
+        graphics.DrawText(screen, font, 3, 14, text_color, message[:30])
         matrix.SwapOnVSync(screen)
         time.sleep(display_time)
     except Exception as e:
@@ -24,126 +99,180 @@ def log_message(screen, matrix, font, text_color, message, log_file_path="log_ti
 
 
 def check_internet(host="8.8.8.8", port=53, timeout=3):
+    """Check if internet connection is available."""
     try:
         socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, port))
+        s.close()
         return True
-    except socket.error as ex:
+    except socket.error:
         return False
 
 
 def clear_screen(screen, matrix):
+    """Clear the LED screen."""
     try:
         screen.Clear()
         matrix.SwapOnVSync(screen)
     except Exception as e:
-        log_message(screen, matrix, font_normal, textColor, f"Screen clear err: {str(e)[:20]}")
+        print(f"Screen clear error: {e}")
 
 
 def verify_repository(repo_path, expected_files=None):
+    """Verify that the repository was cloned correctly."""
     try:
         if not os.path.exists(repo_path) or not os.path.isdir(repo_path):
+            print(f"Repository path does not exist: {repo_path}")
             return False
 
-        if not os.path.exists(os.path.join(repo_path, '.git')):
+        git_dir = os.path.join(repo_path, '.git')
+        if not os.path.exists(git_dir):
+            print(f".git directory not found in: {repo_path}")
             return False
 
         if expected_files:
             for file in expected_files:
-                if not os.path.exists(os.path.join(repo_path, file)):
+                file_path = os.path.join(repo_path, file)
+                if not os.path.exists(file_path):
+                    print(f"Expected file not found: {file_path}")
                     return False
-        else:
-            files = os.listdir(repo_path)
-            if len(files) <= 1:
-                return False
 
         return True
     except Exception as e:
-        log_message(first_screen, matrix, font_normal, textColor, f"Verify err: {str(e)[:20]}")
+        print(f"Verify error: {e}")
         return False
 
 
-def download_code(repo_url, clone_dir, max_retries=10, expected_files=None):
+def download_code(screen, matrix, font, text_color, repo_url, clone_dir, max_retries=5, expected_files=None):
+    """Clone or update the repository with retry logic."""
     repo_name = repo_url.split("/")[-1].replace('.git', "")
     repo_path = os.path.join(clone_dir, repo_name)
+    
+    print(f"Repository URL: {repo_url}")
+    print(f"Clone directory: {clone_dir}")
+    print(f"Full repo path: {repo_path}")
 
     for attempt in range(1, max_retries + 1):
         try:
-            log_message(first_screen, matrix, font_normal, textColor, f"Attempt {attempt} to get code")
+            log_message(screen, matrix, font, text_color, f"Update {attempt}/{max_retries}...")
 
             if not os.path.exists(repo_path):
-                result = subprocess.run(['git', 'clone', repo_url, repo_path], check=True, capture_output=True)
+                print(f"Cloning repository to {repo_path}...")
+                result = subprocess.run(
+                    ['git', 'clone', repo_url, repo_path],
+                    check=True, capture_output=True, text=True, timeout=120
+                )
+                print(f"Clone output: {result.stdout} {result.stderr}")
             else:
-                subprocess.run(['git', '-C', repo_path, 'fetch', '--all'], check=True, capture_output=True)
-                subprocess.run(['git', '-C', repo_path, 'reset', '--hard', 'origin/main'], check=True, capture_output=True)
+                print(f"Updating existing repository at {repo_path}...")
+                
+                # Fetch all changes
+                subprocess.run(
+                    ['git', '-C', repo_path, 'fetch', '--all'],
+                    check=True, capture_output=True, text=True, timeout=60
+                )
+                
+                # Reset to origin/main
+                subprocess.run(
+                    ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
+                    check=True, capture_output=True, text=True, timeout=60
+                )
+                print("Git fetch and reset completed")
 
             if verify_repository(repo_path, expected_files):
-                log_message(first_screen, matrix, font_normal, textColor, "Repo verified")
                 return True, repo_path
             else:
-                log_message(first_screen, matrix, font_normal, textColor, f"Verify failed #{attempt}")
+                log_message(screen, matrix, font, text_color, f"Verify failed #{attempt}")
                 if os.path.exists(repo_path):
                     shutil.rmtree(repo_path)
+                    
+        except subprocess.TimeoutExpired:
+            log_message(screen, matrix, font, text_color, f"Timeout #{attempt}")
+            time.sleep(5)
         except subprocess.CalledProcessError as e:
-            log_message(first_screen, matrix, font_normal, textColor, f"Git err #{attempt}: {e.stderr.decode()[:30]}")
+            log_message(screen, matrix, font, text_color, f"Git error #{attempt}")
+            print(f"Git error: {e.stderr}")
             time.sleep(5)
         except Exception as e:
-            log_message(first_screen, matrix, font_normal, textColor, f"Err #{attempt}: {str(e)[:30]}")
+            log_message(screen, matrix, font, text_color, f"Error #{attempt}")
+            print(f"Exception: {e}")
             time.sleep(5)
 
     return False, repo_path
 
 
-def update_code(first_screen, matrix, font_normal, textColor):
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+def main():
+    print("=" * 50)
+    print("ZURUCKBLEIBENBITTE UPDATE SCRIPT")
+    print(f"Started at: {datetime.datetime.now()}")
+    print(f"Script location: {SCRIPT_DIR}")
+    print("=" * 50)
+    
+    os.chdir(SCRIPT_DIR)
+    
     try:
-        log_message(first_screen, matrix, font_normal, textColor, 'Starting update')
+        # Initialize the LED matrix
+        options = RGBMatrixOptions()
+        options.rows = 32
+        options.cols = 192
+        options.brightness = 100
+        options.gpio_slowdown = 5
+        options.disable_hardware_pulsing = 1
+        options.hardware_mapping = 'adafruit-hat'
+        options.pwm_lsb_nanoseconds = 100
 
-        GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
-        CLONE_DIR = os.getcwd()
-        expected_files = ['test_file.py']
+        matrix = RGBMatrix(options=options)
+        screen = matrix.CreateFrameCanvas()
 
-        success, repo_path = download_code(GITHUB_REPO_URL, CLONE_DIR, expected_files=expected_files)
+        # Load font
+        font_normal = graphics.Font()
+        font_path = os.path.join(FONTS_DIR, "bfvlowermargen.bdf")
+        
+        if not os.path.exists(font_path):
+            print(f"ERROR: Font not found at {font_path}")
+            return
+            
+        font_normal.LoadFont(font_path)
+        text_color = graphics.Color(255, 1, 200)
 
-        if success:
-            log_message(first_screen, matrix, font_normal, textColor, f"Updated: {repo_path.split('/')[-1]}")
-        else:
-            log_message(first_screen, matrix, font_normal, textColor, 'Update failed!')
+        log_message(screen, matrix, font_normal, text_color, 'Starting...')
+
+        # Wait for internet
+        internet_attempts = 0
+        while not check_internet():
+            internet_attempts += 1
+            log_message(screen, matrix, font_normal, text_color, f"No wifi #{internet_attempts}", display_time=2)
+            if internet_attempts > 30:
+                log_message(screen, matrix, font_normal, text_color, "No internet!")
+                return
+            time.sleep(3)
+
+        log_message(screen, matrix, font_normal, text_color, "Internet OK!")
+        
+        # Perform the update
+        success, repo_path = download_code(
+            screen, matrix, font_normal, text_color,
+            GITHUB_REPO_URL, CLONE_DIR,
+            expected_files=EXPECTED_FILES
+        )
+        
+        # =================================================================
+        # DISPLAY VERSION INFO - This is the key verification step!
+        # =================================================================
+        display_version_info(screen, matrix, font_normal, text_color, repo_path, success)
+        
+        clear_screen(screen, matrix)
+        print("Update script completed")
+
     except Exception as e:
-        log_message(first_screen, matrix, font_normal, textColor, f'Update exc: {str(e)[:30]}')
+        print(f"FATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
 
-    clear_screen(first_screen, matrix)
 
-
-try:
-    options = RGBMatrixOptions()
-    options.rows = 32
-    options.cols = 192
-    options.brightness = 100
-    options.gpio_slowdown = 5
-    options.disable_hardware_pulsing = 1
-    options.hardware_mapping = 'adafruit-hat'
-    options.pwm_lsb_nanoseconds = 100
-
-    matrix = RGBMatrix(options=options)
-    first_screen = matrix.CreateFrameCanvas()
-
-    font_normal = graphics.Font()
-    font_normal.LoadFont("fonts/bfvlowermargen.bdf")
-    textColor = graphics.Color(255, 1, 200)
-
-    log_message(first_screen, matrix, font_normal, textColor, 'Starting script')
-
-    while not check_internet():
-        log_message(first_screen, matrix, font_normal, textColor, "No internet. Retry...")
-        time.sleep(5)
-
-    log_message(first_screen, matrix, font_normal, textColor, "Internet OK")
-    update_code(first_screen, matrix, font_normal, textColor)
-    log_message(first_screen, matrix, font_normal, textColor, "Done.")
-    clear_screen(first_screen, matrix)
-
-except Exception as main_e:
-    try:
-        log_message(first_screen, matrix, font_normal, textColor, f"Fatal error: {str(main_e)[:30]}")
-    except:
-        print(f"Fatal error (no LED): {main_e}")
+if __name__ == "__main__":
+    main()
