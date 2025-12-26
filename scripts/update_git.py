@@ -152,23 +152,30 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
             log_message(screen, matrix, font, text_color, f"Update {attempt}/{max_retries}...")
 
             if not os.path.exists(os.path.join(repo_path, '.git')):
-                print(f"No git repo found at {repo_path}, cannot update")
+                log_message(screen, matrix, font, text_color, "No .git found!")
                 return False, repo_path
 
-            print(f"Updating repository at {repo_path}...")
+            log_message(screen, matrix, font, text_color, "Fetching...", 1)
 
             # Fetch all changes
-            subprocess.run(
+            result = subprocess.run(
                 ['git', '-C', repo_path, 'fetch', '--all'],
-                check=True, capture_output=True, text=True, timeout=60
+                capture_output=True, text=True, timeout=60
             )
+            if result.returncode != 0:
+                log_message(screen, matrix, font, text_color, f"Fetch fail: {result.returncode}")
+                raise subprocess.CalledProcessError(result.returncode, 'git fetch', result.stdout, result.stderr)
+
+            log_message(screen, matrix, font, text_color, "Resetting...", 1)
 
             # Reset to origin/main
-            subprocess.run(
+            result = subprocess.run(
                 ['git', '-C', repo_path, 'reset', '--hard', 'origin/main'],
-                check=True, capture_output=True, text=True, timeout=60
+                capture_output=True, text=True, timeout=60
             )
-            print("Git fetch and reset completed")
+            if result.returncode != 0:
+                log_message(screen, matrix, font, text_color, f"Reset fail: {result.returncode}")
+                raise subprocess.CalledProcessError(result.returncode, 'git reset', result.stdout, result.stderr)
 
             if verify_repository(repo_path, expected_files):
                 return True, repo_path
@@ -179,8 +186,9 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
             log_message(screen, matrix, font, text_color, f"Timeout #{attempt}")
             time.sleep(5)
         except subprocess.CalledProcessError as e:
-            log_message(screen, matrix, font, text_color, f"Git error #{attempt}")
-            print(f"Git error: {e.stderr}")
+            error_msg = e.stderr if e.stderr else str(e)
+            print(f"Git error: {error_msg}")
+            log_message(screen, matrix, font, text_color, f"Git: {error_msg[:20]}")
             time.sleep(5)
         except Exception as e:
             log_message(screen, matrix, font, text_color, f"Error #{attempt}")
