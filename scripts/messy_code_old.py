@@ -29,14 +29,13 @@ font_normal = graphics.Font()
 font_big = graphics.Font()
 font_small = graphics.Font()
 
-try:
-    font_normal.LoadFont("rpi-rgb-led-matrix/fonts/bfvlowermargen.bdf")
-    font_big.LoadFont("rpi-rgb-led-matrix/fonts/FixedBold-13.bdf")
-    font_small.LoadFont("rpi-rgb-led-matrix/fonts/bfvlowermargen.bdf")
-except:
-    font_normal.LoadFont("fonts/bfvlowermargen.bdf")
-    font_big.LoadFont("fonts/FixedBold-13.bdf")
-    font_small.LoadFont("fonts/bfvlowermargen.bdf")
+import os
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
+
+font_normal.LoadFont(os.path.join(FONTS_DIR, "bfvlowermargen.bdf"))
+font_big.LoadFont(os.path.join(FONTS_DIR, "FixedBold-13.bdf"))
+font_small.LoadFont(os.path.join(FONTS_DIR, "bfvlowermargen.bdf"))
 
 # real color =     textColor = graphics.Color(255, 1, 200) #color of the text
 
