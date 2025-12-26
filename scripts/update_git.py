@@ -157,6 +157,12 @@ def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_ret
 
             log_message(screen, matrix, font, text_color, "Fetching...", 1)
 
+            # Add safe directory to avoid git ownership errors
+            subprocess.run(
+                ['git', 'config', '--global', '--add', 'safe.directory', repo_path],
+                capture_output=True, timeout=10
+            )
+
             # Fetch all changes
             result = subprocess.run(
                 ['git', '-C', repo_path, 'fetch', '--all'],
