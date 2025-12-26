@@ -14,7 +14,7 @@ FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 LOG_FILE_PATH = os.path.join(SCRIPT_DIR, "log_timestamp.txt")
 
 GITHUB_REPO_URL = 'https://github.com/msolercanalsgit/zuruckbleibenbitte.git'
-EXPECTED_FILES = ['scripts/messy_code_old.py']
+EXPECTED_FILES = ['scripts/main_train_display.py']
 
 # =============================================================================
 # VERSION TRACKING
@@ -145,7 +145,7 @@ def verify_repository(repo_path, expected_files=None):
         return False
 
 
-def download_code(screen, matrix, font, text_color, repo_url, repo_path, max_retries=5, expected_files=None):
+def update_repository(screen, matrix, font, text_color, repo_url, repo_path, max_retries=5, expected_files=None):
     """Update the repository in place with retry logic."""
     print(f"Repository URL: {repo_url}")
     print(f"Repository path: {repo_path}")
@@ -262,7 +262,7 @@ def main():
         log_message(screen, matrix, font_normal, text_color, "Internet OK!")
         
         # Perform the update
-        success, repo_path = download_code(
+        success, repo_path = update_repository(
             screen, matrix, font_normal, text_color,
             GITHUB_REPO_URL, REPO_DIR,
             expected_files=EXPECTED_FILES
