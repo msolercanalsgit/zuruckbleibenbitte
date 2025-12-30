@@ -1,0 +1,11 @@
+{
+  "wifi_networks": [],
+  "train_station": {
+    "id": "900120004",
+    "name": "Warschauer Straße"
+  },
+  "ap_mode": {
+    "ssid": "TrainDisplay-Setup",
+    "password": "trainsetup123"
+  }
+}

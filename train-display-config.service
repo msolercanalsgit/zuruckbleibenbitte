@@ -1,0 +1,15 @@
+[Unit]
+Description=Train Display Configuration Web Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/msolercanals/zuruckbleibenbitte/scripts
+ExecStart=/usr/bin/python3 /home/msolercanals/zuruckbleibenbitte/scripts/config_server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

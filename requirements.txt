@@ -1,0 +1,10 @@
+# Python dependencies for Train Display
+# Install with: pip3 install -r requirements.txt --break-system-packages
+
+# Web server for WiFi configuration
+Flask==3.0.0
+
+# Existing dependencies (already in use)
+pandas
+requests
+rgbmatrix
