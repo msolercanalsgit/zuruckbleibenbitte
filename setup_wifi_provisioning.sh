@@ -30,7 +30,8 @@ apt-get install -y python3-pip python3-flask network-manager dnsmasq hostapd
 echo ""
 echo "Step 2: Installing Python dependencies..."
 echo "----------------------------------------"
-pip3 install flask --break-system-packages
+# Try with --break-system-packages first (newer Python), fallback to without it
+pip3 install flask --break-system-packages 2>/dev/null || pip3 install flask || apt-get install -y python3-flask
 
 # Make scripts executable
 echo ""
@@ -52,14 +53,40 @@ systemctl enable train-display-config.service
 echo ""
 echo "Step 5: Configuring network services..."
 echo "----------------------------------------"
-systemctl stop dnsmasq
-systemctl disable dnsmasq
-systemctl stop hostapd
-systemctl disable hostapd
+systemctl stop dnsmasq 2>/dev/null || true
+systemctl disable dnsmasq 2>/dev/null || true
+systemctl stop hostapd 2>/dev/null || true
+systemctl disable hostapd 2>/dev/null || true
+
+# Disable dhcpcd if it's running (conflicts with NetworkManager)
+systemctl stop dhcpcd 2>/dev/null || true
+systemctl disable dhcpcd 2>/dev/null || true
 
 # Enable and start NetworkManager
 systemctl enable NetworkManager
 systemctl start NetworkManager
+
+# Wait for NetworkManager to start
+sleep 2
+
+# Verify NetworkManager is running
+if systemctl is-active --quiet NetworkManager; then
+    echo "✓ NetworkManager is running"
+else
+    echo "✗ WARNING: NetworkManager failed to start!"
+fi
+
+# Fix hostname resolution issue
+echo ""
+echo "Step 5b: Fixing hostname resolution..."
+echo "----------------------------------------"
+CURRENT_HOSTNAME=$(hostname)
+if ! grep -q "127.0.1.1.*$CURRENT_HOSTNAME" /etc/hosts; then
+    echo "127.0.1.1       $CURRENT_HOSTNAME" >> /etc/hosts
+    echo "✓ Added hostname to /etc/hosts"
+else
+    echo "✓ Hostname already in /etc/hosts"
+fi
 
 # Create initial config if it doesn't exist
 echo ""
