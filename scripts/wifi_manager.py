@@ -16,7 +16,7 @@ FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 AP_INTERFACE = "wlan0"
 AP_SSID_DEFAULT = "TrainDisplay-Setup"
 AP_PASSWORD_DEFAULT = "trainsetup123"
-AP_IP = "192.168.4.1"
+AP_IP = "10.42.0.1"  # NetworkManager's default hotspot IP
 
 # LED matrix globals (will be initialized in main)
 matrix = None
@@ -142,32 +142,23 @@ def connect_to_wifi(ssid, password):
     display_message(f"Connecting to {ssid[:15]}...", 1)
 
     try:
-        # Check if connection already exists
-        result = subprocess.run(
-            ['nmcli', 'connection', 'show', ssid],
+        # Always delete existing connection and create fresh one with new password
+        # This ensures password updates are applied
+        print(f"Removing old connection profile for: {ssid}")
+        subprocess.run(
+            ['nmcli', 'connection', 'delete', ssid],
             capture_output=True,
-            text=True,
             timeout=10
         )
 
-        if result.returncode == 0:
-            # Connection exists, just activate it
-            print(f"Connection profile exists, activating: {ssid}")
-            result = subprocess.run(
-                ['nmcli', 'connection', 'up', ssid],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-        else:
-            # Create new connection
-            print(f"Creating new connection: {ssid}")
-            result = subprocess.run(
-                ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+        # Create new connection with the password
+        print(f"Creating new connection: {ssid}")
+        result = subprocess.run(
+            ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
 
         if result.returncode == 0:
             print(f"Successfully connected to {ssid}")
@@ -244,8 +235,8 @@ def stop_ap_mode():
         return False
 
 
-def try_saved_networks(config):
-    """Try to connect to saved WiFi networks in order."""
+def try_saved_networks(config, max_retries=3):
+    """Try to connect to saved WiFi networks in order with retries."""
     networks = config.get('wifi_networks', [])
 
     if not networks:
@@ -262,18 +253,32 @@ def try_saved_networks(config):
         if not ssid or not password:
             continue
 
-        print(f"Trying to connect to: {ssid}")
+        # Try this network multiple times before giving up
+        for attempt in range(1, max_retries + 1):
+            print(f"Trying to connect to: {ssid} (attempt {attempt}/{max_retries})")
+            display_message(f"Try {attempt}/{max_retries}: {ssid[:12]}", 2)
 
-        if connect_to_wifi(ssid, password):
-            # Wait a bit and verify connection
-            display_message("Verifying...", 3)
-            time.sleep(5)
-            if is_wifi_connected() and check_internet():
-                print(f"Successfully connected to {ssid} with internet!")
-                display_message(f"Connected to {ssid[:15]}", 2)
-                return True
+            if connect_to_wifi(ssid, password):
+                # Wait a bit and verify connection
+                display_message("Verifying...", 3)
+                time.sleep(5)
+                if is_wifi_connected() and check_internet():
+                    print(f"Successfully connected to {ssid} with internet!")
+                    display_message(f"Connected to {ssid[:15]}", 2)
+                    return True
+                else:
+                    print(f"Connected to {ssid} but no internet, retrying...")
+                    display_message("No internet, retry...", 2)
             else:
-                print(f"Connected to {ssid} but no internet")
+                print(f"Connection attempt {attempt} failed")
+                if attempt < max_retries:
+                    display_message("Retrying...", 2)
+                    time.sleep(2)
+
+        # All retries failed for this network
+        print(f"Failed to connect to {ssid} after {max_retries} attempts")
+        display_message(f"Failed: {ssid[:15]}", 2)
+        time.sleep(1)
 
     return False
 
@@ -372,11 +377,12 @@ def main():
         try:
             config_server_path = os.path.join(SCRIPT_DIR, 'config_server.py')
             subprocess.Popen(
-                ['python3', config_server_path],
+                ['sudo', 'python3', config_server_path],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
-            print("Config server started")
+            time.sleep(2)  # Give it time to start
+            print("Config server started on port 80")
         except Exception as e:
             print(f"Warning: Could not start config server: {e}")
 
