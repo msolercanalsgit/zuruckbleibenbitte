@@ -149,28 +149,55 @@ def get_current_ssid():
         return None
 
 
-def connect_to_wifi(ssid, password):
+def connect_to_wifi(ssid, password, force_recreate=False):
     """Connect to a WiFi network using NetworkManager."""
     display_message(f"Connecting to {ssid[:15]}...", 1)
 
     try:
-        # Always delete existing connection and create fresh one with new password
-        # This ensures password updates are applied
-        print(f"Removing old connection profile for: {ssid}")
-        subprocess.run(
-            ['nmcli', 'connection', 'delete', ssid],
+        # Check if connection already exists
+        check_result = subprocess.run(
+            ['nmcli', 'connection', 'show', ssid],
             capture_output=True,
             timeout=10
         )
+        connection_exists = (check_result.returncode == 0)
 
-        # Create new connection with the password
-        print(f"Creating new connection: {ssid}")
-        result = subprocess.run(
-            ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
+        # If forcing recreate or connection doesn't exist, create new one
+        if force_recreate or not connection_exists:
+            if connection_exists:
+                print(f"Removing old connection profile for: {ssid}")
+                subprocess.run(
+                    ['nmcli', 'connection', 'delete', ssid],
+                    capture_output=True,
+                    timeout=10
+                )
+
+            # Trigger a WiFi scan to ensure network is visible
+            print("Scanning for WiFi networks...")
+            subprocess.run(
+                ['nmcli', 'dev', 'wifi', 'rescan'],
+                capture_output=True,
+                timeout=10
+            )
+            time.sleep(3)  # Wait for scan to complete
+
+            # Create new connection with the password
+            print(f"Creating new connection: {ssid}")
+            result = subprocess.run(
+                ['nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+        else:
+            # Connection exists, just try to activate it
+            print(f"Connection profile exists, activating: {ssid}")
+            result = subprocess.run(
+                ['nmcli', 'connection', 'up', ssid],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
 
         if result.returncode == 0:
             print(f"Successfully connected to {ssid}")
@@ -247,7 +274,7 @@ def stop_ap_mode():
         return False
 
 
-def try_saved_networks(config, max_retries=3):
+def try_saved_networks(config, max_retries=2):
     """Try to connect to saved WiFi networks in order with retries."""
     networks = config.get('wifi_networks', [])
 
@@ -258,9 +285,32 @@ def try_saved_networks(config, max_retries=3):
     print(f"Found {len(networks)} saved network(s)")
     display_message(f"Trying {len(networks)} network(s)...", 1)
 
+    # Check if we're already connected to one of the saved networks
+    current_ssid = get_current_ssid()
+    if current_ssid:
+        for network in networks:
+            if network.get('ssid') == current_ssid:
+                print(f"Already connected to saved network: {current_ssid}")
+                if check_internet():
+                    print(f"Internet OK on {current_ssid}")
+                    display_message(f"Connected to {current_ssid[:15]}", 2)
+
+                    # Display IP address for 10 seconds
+                    ip = get_local_ip()
+                    if ip:
+                        print(f"IP Address: {ip}")
+                        print(f"Access config at: http://{ip}")
+                        display_message(f"IP: {ip}", 10)
+
+                    return True
+                else:
+                    print(f"Connected to {current_ssid} but no internet, will retry...")
+                    break
+
     for network in networks:
         ssid = network.get('ssid')
         password = network.get('password')
+        password_updated = network.get('password_updated', False)
 
         if not ssid or not password:
             continue
@@ -270,25 +320,44 @@ def try_saved_networks(config, max_retries=3):
             print(f"Trying to connect to: {ssid} (attempt {attempt}/{max_retries})")
             display_message(f"Try {attempt}/{max_retries}: {ssid[:12]}", 2)
 
-            if connect_to_wifi(ssid, password):
-                # Wait a bit and verify connection
-                display_message("Verifying...", 3)
-                time.sleep(5)
-                if is_wifi_connected() and check_internet():
-                    print(f"Successfully connected to {ssid} with internet!")
-                    display_message(f"Connected to {ssid[:15]}", 2)
+            # Force recreate connection if password was just updated
+            if connect_to_wifi(ssid, password, force_recreate=password_updated):
+                # Wait for connection to stabilize and internet to come up
+                display_message("Verifying...", 2)
+                time.sleep(3)
 
-                    # Display IP address for 10 seconds so user can access config
-                    ip = get_local_ip()
-                    if ip:
-                        print(f"IP Address: {ip}")
-                        print(f"Access config at: http://{ip}")
-                        display_message(f"IP: {ip}", 10)
+                # Check if WiFi is connected
+                if is_wifi_connected():
+                    # Give internet more time to come up (DHCP, DNS, etc.)
+                    print("WiFi connected, waiting for internet...")
+                    time.sleep(5)
 
-                    return True
+                    if check_internet():
+                        print(f"Successfully connected to {ssid} with internet!")
+                        display_message(f"Connected to {ssid[:15]}", 2)
+
+                        # Clear password_updated flag if it was set
+                        if password_updated:
+                            config = load_config()
+                            for net in config.get('wifi_networks', []):
+                                if net.get('ssid') == ssid:
+                                    net.pop('password_updated', None)
+                            save_config(config)
+
+                        # Display IP address for 10 seconds so user can access config
+                        ip = get_local_ip()
+                        if ip:
+                            print(f"IP Address: {ip}")
+                            print(f"Access config at: http://{ip}")
+                            display_message(f"IP: {ip}", 10)
+
+                        return True
+                    else:
+                        print(f"Connected to {ssid} but no internet yet, retrying...")
+                        display_message("No internet, retry...", 2)
                 else:
-                    print(f"Connected to {ssid} but no internet, retrying...")
-                    display_message("No internet, retry...", 2)
+                    print(f"Connection to {ssid} failed")
+                    display_message("Connection failed", 2)
             else:
                 print(f"Connection attempt {attempt} failed")
                 if attempt < max_retries:

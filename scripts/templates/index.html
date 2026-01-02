@@ -105,6 +105,30 @@
             border-color: #667eea;
         }
 
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 4px 8px;
+            width: auto;
+        }
+
+        .toggle-password:hover {
+            color: #764ba2;
+            transform: translateY(-50%);
+            box-shadow: none;
+        }
+
         button {
             width: 100%;
             padding: 14px;
@@ -241,7 +265,10 @@
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Enter WiFi password" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password" placeholder="Enter WiFi password" required style="padding-right: 70px;">
+                            <button type="button" class="toggle-password" onclick="togglePassword()">Show</button>
+                        </div>
                         <p class="help-text">Your credentials are stored locally on the device</p>
                     </div>
 
@@ -266,8 +293,81 @@
     </div>
 
     <script>
-        // Load saved networks on page load
-        window.addEventListener('DOMContentLoaded', loadNetworks);
+        // Load saved networks and check status on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkConnectionStatus();
+            loadNetworks();
+        });
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleBtn = event.target;
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.textContent = 'Hide';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.textContent = 'Show';
+            }
+        }
+
+        async function checkConnectionStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                if (data.wifi_connected && data.current_ssid) {
+                    // Connected to WiFi - show different interface
+                    showConnectedInterface(data);
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        function showConnectedInterface(status) {
+            const header = document.querySelector('.header');
+            header.innerHTML = `
+                <h1>Train Display Configuration</h1>
+                <p>Connected via WiFi: ${escapeHtml(status.current_ssid || 'Unknown')}</p>
+            `;
+
+            const content = document.querySelector('.content');
+            content.innerHTML = `
+                <div class="status info">
+                    <strong>✓ Connected to Raspberry Pi via WiFi</strong><br>
+                    You are accessing the configuration interface over your home WiFi network.
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Connection Status</h2>
+                    <p style="margin-bottom: 10px;"><strong>WiFi Network:</strong> ${escapeHtml(status.current_ssid || 'Unknown')}</p>
+                    <p style="margin-bottom: 10px;"><strong>Saved Networks:</strong> ${status.saved_networks_count || 0}</p>
+                    <p class="help-text">The train display is operating normally</p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section">
+                    <h2 class="section-title">Train Station Configuration</h2>
+                    <p class="help-text" style="margin-bottom: 15px;">
+                        Current station: <strong>${escapeHtml(status.train_station?.name || 'Unknown')}</strong>
+                        (ID: ${escapeHtml(status.train_station?.id || 'Unknown')})
+                    </p>
+                    <p class="help-text">Station configuration coming soon...</p>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section">
+                    <h2 class="section-title">Setup Mode</h2>
+                    <p class="help-text" style="margin-bottom: 15px;">
+                        To add or modify WiFi networks, disconnect from the current WiFi or manually activate setup mode on the device.
+                    </p>
+                </div>
+            `;
+        }
 
         // Handle form submission
         document.getElementById('wifi-form').addEventListener('submit', async (e) => {

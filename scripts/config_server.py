@@ -110,8 +110,9 @@ def add_wifi():
         existing_networks = config.get('wifi_networks', [])
         for i, network in enumerate(existing_networks):
             if network['ssid'] == ssid:
-                # Update existing network
+                # Update existing network and mark it as updated
                 existing_networks[i]['password'] = password
+                existing_networks[i]['password_updated'] = True
                 config['wifi_networks'] = existing_networks
                 save_config(config)
 
