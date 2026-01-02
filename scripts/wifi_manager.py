@@ -323,14 +323,14 @@ def try_saved_networks(config, max_retries=2):
             # Force recreate connection if password was just updated
             if connect_to_wifi(ssid, password, force_recreate=password_updated):
                 # Wait for connection to stabilize and internet to come up
-                display_message("Verifying...", 2)
-                time.sleep(3)
+                display_message("Verifying...", 3)
+                time.sleep(5)
 
                 # Check if WiFi is connected
                 if is_wifi_connected():
                     # Give internet more time to come up (DHCP, DNS, etc.)
                     print("WiFi connected, waiting for internet...")
-                    time.sleep(5)
+                    time.sleep(15)
 
                     if check_internet():
                         print(f"Successfully connected to {ssid} with internet!")
