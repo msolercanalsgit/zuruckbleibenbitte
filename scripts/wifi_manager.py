@@ -104,6 +104,18 @@ def check_internet(host="8.8.8.8", port=53, timeout=3):
         return False
 
 
+def get_local_ip():
+    """Get the local IP address of the Pi."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return None
+
+
 def is_wifi_connected():
     """Check if WiFi is connected using nmcli."""
     try:
@@ -265,6 +277,14 @@ def try_saved_networks(config, max_retries=3):
                 if is_wifi_connected() and check_internet():
                     print(f"Successfully connected to {ssid} with internet!")
                     display_message(f"Connected to {ssid[:15]}", 2)
+
+                    # Display IP address for 10 seconds so user can access config
+                    ip = get_local_ip()
+                    if ip:
+                        print(f"IP Address: {ip}")
+                        print(f"Access config at: http://{ip}")
+                        display_message(f"IP: {ip}", 10)
+
                     return True
                 else:
                     print(f"Connected to {ssid} but no internet, retrying...")
@@ -342,6 +362,14 @@ def main():
         if check_internet():
             print("Internet connection verified!")
             display_message(f"WiFi OK: {current_ssid[:15]}", 2)
+
+            # Display IP address for 10 seconds so user can access config
+            ip = get_local_ip()
+            if ip:
+                print(f"IP Address: {ip}")
+                print(f"Access config at: http://{ip}")
+                display_message(f"IP: {ip}", 10)
+
             clear_screen()
             return
         else:
