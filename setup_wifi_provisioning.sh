@@ -88,6 +88,15 @@ else
     echo "✓ Hostname already in /etc/hosts"
 fi
 
+# Install PolicyKit rule for NetworkManager permissions
+echo ""
+echo "Step 5c: Installing NetworkManager permissions..."
+echo "----------------------------------------"
+mkdir -p /etc/polkit-1/localauthority/50-local.d/
+cp "$SCRIPT_DIR/networkmanager-wifi.pkla" /etc/polkit-1/localauthority/50-local.d/
+chmod 644 /etc/polkit-1/localauthority/50-local.d/networkmanager-wifi.pkla
+echo "✓ PolicyKit rule installed"
+
 # Create initial config if it doesn't exist
 echo ""
 echo "Step 6: Creating initial configuration..."
