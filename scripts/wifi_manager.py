@@ -367,6 +367,19 @@ def main():
         print(f"Setup URL: http://{AP_IP}")
         print("=" * 50)
 
+        # Start the config web server in background
+        print("Starting configuration web server...")
+        try:
+            config_server_path = os.path.join(SCRIPT_DIR, 'config_server.py')
+            subprocess.Popen(
+                ['python3', config_server_path],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print("Config server started")
+        except Exception as e:
+            print(f"Warning: Could not start config server: {e}")
+
         # Display setup instructions on LED - loop until WiFi is configured
         print("Waiting for WiFi configuration via web interface...")
 
