@@ -367,12 +367,52 @@ def main():
         print(f"Setup URL: http://{AP_IP}")
         print("=" * 50)
 
-        # Display setup instructions on LED
-        display_message("SETUP MODE", 3)
-        display_message(f"WiFi: {ap_ssid[:20]}", 3)
-        display_message(f"Pass: {ap_password[:20]}", 3)
-        display_message(f"Go to {AP_IP}", 3)
-        display_message("Waiting for setup...", 2)
+        # Display setup instructions on LED - loop until WiFi is configured
+        print("Waiting for WiFi configuration via web interface...")
+
+        check_count = 0
+        while True:
+            # Cycle through setup messages
+            if check_count % 4 == 0:
+                display_message("SETUP MODE", 2)
+            elif check_count % 4 == 1:
+                display_message(f"WiFi: {ap_ssid[:20]}", 2)
+            elif check_count % 4 == 2:
+                display_message(f"Pass: {ap_password[:20]}", 2)
+            else:
+                display_message(f"Go to {AP_IP}", 2)
+
+            check_count += 1
+
+            # Check if WiFi networks have been added to config
+            config = load_config()
+            if config and config.get('wifi_networks'):
+                networks = config.get('wifi_networks', [])
+                print(f"\n{len(networks)} WiFi network(s) configured!")
+                display_message("WiFi configured!", 2)
+                display_message("Connecting...", 2)
+
+                # Stop AP mode
+                stop_ap_mode()
+
+                # Try to connect to the configured networks
+                if try_saved_networks(config):
+                    display_message("Connected!", 2)
+                    print("Successfully connected to WiFi!")
+                    clear_screen()
+                    return
+                else:
+                    # Failed to connect, go back to AP mode
+                    display_message("Connection failed!", 2)
+                    print("Failed to connect to configured network, restarting AP mode...")
+                    time.sleep(3)
+                    if not start_ap_mode(ap_ssid, ap_password):
+                        print("ERROR: Could not restart AP mode")
+                        break
+                    check_count = 0  # Reset display cycle
+
+            # Wait before checking again
+            time.sleep(1)
     else:
         print("ERROR: Could not start AP mode")
         display_message("AP mode failed!", 3)
