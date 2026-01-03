@@ -7,5 +7,6 @@
   "ap_mode": {
     "ssid": "TrainDisplay-Setup",
     "password": "trainsetup123"
-  }
+  },
+  "delay_minutes": 10
 }

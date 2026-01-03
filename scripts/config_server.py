@@ -33,7 +33,8 @@ def load_config():
             "ap_mode": {
                 "ssid": "TrainDisplay-Setup",
                 "password": "trainsetup123"
-            }
+            },
+            "delay_minutes": 10
         }
 
 
@@ -68,6 +69,34 @@ def restart_wifi_async():
             )
         except Exception as e:
             print(f"Error restarting WiFi: {e}")
+
+    thread = threading.Thread(target=restart)
+    thread.daemon = True
+    thread.start()
+
+
+def restart_train_display_async():
+    """Restart train display service in background after a delay."""
+    def restart():
+        print("Waiting 2 seconds before restarting train display...")
+        time.sleep(2)
+        print("Restarting train display service...")
+        try:
+            # Try to restart the systemd service if it exists
+            subprocess.run(
+                ['sudo', 'systemctl', 'restart', 'train-display.service'],
+                capture_output=True,
+                timeout=10
+            )
+        except Exception as e:
+            print(f"Error restarting train display: {e}")
+            # If systemd service doesn't exist, try pkill and restart
+            try:
+                subprocess.run(['sudo', 'pkill', '-f', 'main_train_display.py'], capture_output=True)
+                time.sleep(1)
+                subprocess.Popen(['python3', os.path.join(SCRIPT_DIR, 'main_train_display.py')])
+            except Exception as e2:
+                print(f"Error using fallback restart method: {e2}")
 
     thread = threading.Thread(target=restart)
     thread.daemon = True
@@ -238,11 +267,46 @@ def get_status():
             'wifi_connected': is_connected,
             'current_ssid': current_ssid,
             'train_station': config.get('train_station', {}),
-            'saved_networks_count': len(config.get('wifi_networks', []))
+            'saved_networks_count': len(config.get('wifi_networks', [])),
+            'delay_minutes': config.get('delay_minutes', 10)
         })
 
     except Exception as e:
         print(f"Error getting status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/delay/update', methods=['POST'])
+def update_delay():
+    """Update delay minutes configuration."""
+    try:
+        data = request.get_json()
+        delay_minutes = data.get('delay_minutes')
+
+        if delay_minutes is None:
+            return jsonify({'success': False, 'error': 'delay_minutes is required'}), 400
+
+        try:
+            delay_minutes = int(delay_minutes)
+            if delay_minutes < 0 or delay_minutes > 120:
+                return jsonify({'success': False, 'error': 'Delay must be between 0 and 120 minutes'}), 400
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Delay must be a valid number'}), 400
+
+        config = load_config()
+        config['delay_minutes'] = delay_minutes
+        save_config(config)
+
+        # Restart the train display service
+        restart_train_display_async()
+
+        return jsonify({
+            'success': True,
+            'message': f'Updated delay to {delay_minutes} minutes. Restarting display...'
+        })
+
+    except Exception as e:
+        print(f"Error updating delay: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

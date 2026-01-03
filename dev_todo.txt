@@ -1,0 +1,5 @@
+List of things and features to add:
+- Change station and direction. 
+- Google maps backup
+- instructions on how to install
+- 

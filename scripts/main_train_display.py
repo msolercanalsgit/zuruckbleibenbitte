@@ -4,10 +4,32 @@ import requests
 import time
 import time
 import sys
+import json
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
+# Load configuration
+import os
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 
-id = '900120004' #warschauerstrasse station id  
+def load_config():
+    """Load configuration from JSON file."""
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        return {
+            "delay_minutes": 10,
+            "train_station": {
+                "id": "900120004",
+                "name": "Warschauer Straße"
+            }
+        }
+
+config = load_config()
+delay_minutes = config.get('delay_minutes', 10)
+id = config.get('train_station', {}).get('id', '900120004')  
 url = 'https://v6.vbb.transport.rest/stops/' + id + '/departures?duration=60&duration=60'
 options = RGBMatrixOptions()
 options.rows = 32
@@ -29,8 +51,6 @@ font_normal = graphics.Font()
 font_big = graphics.Font()
 font_small = graphics.Font()
 
-import os
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 
 font_normal.LoadFont(os.path.join(FONTS_DIR, "bfvlowermargen.bdf"))
@@ -53,7 +73,7 @@ while True:
         tz_info = data['Date'][0].tzinfo
 
         future_ubahns = data[
-            (data['Date'] > datetime.now(tz_info) + timedelta(minutes = 10))
+            (data['Date'] > datetime.now(tz_info) + timedelta(minutes = delay_minutes))
             & (data['line.productName'] == 'U')].reset_index()
         future_ubahns = future_ubahns[['Date','direction','line.name','line.productName']]
 
