@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f7fafc;
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -24,14 +24,14 @@
         .container {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             max-width: 500px;
             width: 100%;
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #2d3748;
             color: white;
             padding: 30px;
             text-align: center;
@@ -53,6 +53,10 @@
 
         .section {
             margin-bottom: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
 
         .section:last-child {
@@ -62,19 +66,10 @@
         .section-title {
             font-size: 18px;
             font-weight: 600;
-            color: #333;
+            color: #1f2937;
             margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 20px;
-            background: #667eea;
-            margin-right: 10px;
-            border-radius: 2px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #d1d5db;
         }
 
         .form-group {
@@ -102,7 +97,7 @@
         input[type="text"]:focus,
         input[type="password"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #4a5568;
         }
 
         .password-wrapper {
@@ -116,7 +111,7 @@
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: #667eea;
+            color: #4a5568;
             cursor: pointer;
             font-size: 12px;
             padding: 4px 8px;
@@ -124,7 +119,7 @@
         }
 
         .toggle-password:hover {
-            color: #764ba2;
+            color: #2d3748;
             transform: translateY(-50%);
             box-shadow: none;
         }
@@ -132,19 +127,18 @@
         button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #4a5568;
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: background 0.2s;
         }
 
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            background: #2d3748;
         }
 
         button:active {
@@ -159,9 +153,9 @@
         }
 
         .status.info {
-            background: #e3f2fd;
-            color: #1976d2;
-            border-left: 4px solid #1976d2;
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
         }
 
         .status.success {
@@ -217,9 +211,10 @@
         }
 
         .divider {
-            height: 1px;
-            background: #e0e0e0;
+            height: 2px;
+            background: #e5e7eb;
             margin: 30px 0;
+            border-radius: 1px;
         }
 
         #loading {
@@ -230,7 +225,7 @@
 
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border-top: 3px solid #4a5568;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -392,37 +387,23 @@
                         Current station: <strong>${escapeHtml(status.train_station?.name || 'Unknown')}</strong>
                         (ID: ${escapeHtml(status.train_station?.id || 'Unknown')})
                     </p>
-                    <p class="help-text" style="margin-bottom: 15px;">
-                        Current transport type: <strong>${getTransportTypeName(status.transport_type || 'U')}</strong>
-                    </p>
-                    
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label>Transport Type Filter</label>
-                        <select id="transport-type-select" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
-                            <option value="S" ${(status.transport_type || 'U') === 'S' ? 'selected' : ''}>S-Bahn (Suburban)</option>
-                            <option value="U" ${(status.transport_type || 'U') === 'U' ? 'selected' : ''}>U-Bahn (Subway)</option>
-                            <option value="T" ${(status.transport_type || 'U') === 'T' ? 'selected' : ''}>Tram</option>
-                            <option value="B" ${(status.transport_type || 'U') === 'B' ? 'selected' : ''}>Bus</option>
-                            <option value="F" ${(status.transport_type || 'U') === 'F' ? 'selected' : ''}>Ferry</option>
-                            <option value="E" ${(status.transport_type || 'U') === 'E' ? 'selected' : ''}>Express (IC/ICE)</option>
-                            <option value="R" ${(status.transport_type || 'U') === 'R' ? 'selected' : ''}>Regional (RB/RE)</option>
-                        </select>
-                        <button type="button" id="update-transport-btn" style="margin-top: 10px; width: 100%;">Update Transport Type</button>
-                    </div>
 
                     <div class="divider" style="margin: 20px 0;"></div>
 
                     <form id="station-search-form" style="margin-bottom: 15px;">
                         <div class="form-group">
                             <label for="station-search">Search for a station</label>
-                            <input
-                                type="text"
-                                id="station-search"
-                                name="station-search"
-                                placeholder="Enter station name (e.g., Alexanderplatz)"
-                                autocomplete="off"
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                            >
+                            <div style="display: flex; gap: 10px;">
+                                <input
+                                    type="text"
+                                    id="station-search"
+                                    name="station-search"
+                                    placeholder="Enter station name (e.g., Alexanderplatz)"
+                                    autocomplete="off"
+                                    style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                                >
+                                <button type="button" id="search-stations-btn" style="padding: 12px 24px; width: auto; white-space: nowrap;">Search</button>
+                            </div>
                             <div id="station-results" style="margin-top: 10px;"></div>
                         </div>
                     </form>
@@ -445,35 +426,34 @@
                 await updateDelay();
             });
 
-            // Add event listener for transport type update
-            const transportTypeSelect = document.getElementById('transport-type-select');
-            const updateTransportBtn = document.getElementById('update-transport-btn');
-            if (updateTransportBtn) {
-                updateTransportBtn.addEventListener('click', async () => {
-                    await updateTransportType();
+            // Add event listener for station search button
+            const searchStationsBtn = document.getElementById('search-stations-btn');
+            const stationSearchInput = document.getElementById('station-search');
+
+            if (searchStationsBtn) {
+                searchStationsBtn.addEventListener('click', () => {
+                    const query = stationSearchInput.value.trim();
+                    if (query) {
+                        searchStations(query);
+                    } else {
+                        const resultsDiv = document.getElementById('station-results');
+                        if (resultsDiv) {
+                            resultsDiv.innerHTML = '<p class="help-text" style="color: #c62828;">Please enter a station name to search.</p>';
+                        }
+                    }
                 });
             }
 
-            // Add event listener for station search
-            const stationSearchInput = document.getElementById('station-search');
+            // Also allow search on Enter key
             if (stationSearchInput) {
-                let searchTimeout;
-                stationSearchInput.addEventListener('input', (e) => {
-                    const query = e.target.value.trim();
-                    
-                    // Clear previous timeout
-                    clearTimeout(searchTimeout);
-                    
-                    // Clear results if query is empty
-                    if (!query) {
-                        document.getElementById('station-results').innerHTML = '';
-                        return;
+                stationSearchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const query = e.target.value.trim();
+                        if (query) {
+                            searchStations(query);
+                        }
                     }
-                    
-                    // Debounce search - wait 500ms after user stops typing
-                    searchTimeout = setTimeout(() => {
-                        searchStations(query);
-                    }, 500);
                 });
             }
         }
@@ -565,7 +545,7 @@
                                         ID: ${escapeHtml(station.id)}
                                         ${station.distance ? ` • ${Math.round(station.distance)}m away` : ''}
                                     </div>
-                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #667eea; margin-top: 4px;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
+                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #4a5568; margin-top: 4px;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
                                 </div>
                             `;
                             }).join('')}
@@ -584,26 +564,23 @@
             const statusDiv = document.getElementById('station-status-message');
             if (!statusDiv) return;
 
-            if (availableTypes.length === 0) {
-                // No transport types available, just select the station with current transport type
-                const currentTransportType = document.getElementById('transport-type-select')?.value || 'U';
-                selectStation(stationId, stationName, currentTransportType);
-                return;
-            }
+            // Always show transport type selection dialog (filter available types if provided)
+            const allTransportTypes = ['S', 'U', 'T', 'B', 'F', 'E', 'R'];
+            const typesToShow = availableTypes.length > 0 ? availableTypes : allTransportTypes;
 
-            // Show transport type selection dialog
-            const transportOptions = availableTypes.map(type => 
+            const transportOptions = typesToShow.map(type =>
                 `<option value="${type}">${getTransportTypeName(type)}</option>`
             ).join('');
 
             statusDiv.innerHTML = `
                 <div style="padding: 15px; background: #f5f5f5; border-radius: 8px; margin-top: 10px;">
                     <div style="font-weight: 500; margin-bottom: 10px;">Select transport type for ${escapeHtml(stationName)}:</div>
+                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 10px;">Available at this station: ${typesToShow.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
                     <select id="station-transport-select" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; margin-bottom: 10px;">
                         ${transportOptions}
                     </select>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Select</button>
+                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 10px; background: #4a5568; color: white; border: none; border-radius: 6px; cursor: pointer;">Select</button>
                         <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
                     </div>
                 </div>
