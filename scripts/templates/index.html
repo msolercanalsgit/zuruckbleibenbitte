@@ -425,10 +425,8 @@
 
                 if (data.success) {
                     showConnectedMessage(data.message, 'success');
-                    // Reload status after a delay to show updated value
-                    setTimeout(() => {
-                        checkConnectionStatus();
-                    }, 3000);
+                    // Immediately reload status to show updated value
+                    checkConnectionStatus();
                 } else {
                     showConnectedMessage('Error: ' + (data.error || 'Unknown error'), 'error');
                 }
