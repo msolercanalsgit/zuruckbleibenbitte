@@ -335,9 +335,16 @@ def stop_ap_mode():
     return False
 
 
-def update_network_status(config, ssid, success, error_msg=None):
+def update_network_status(ssid, success, error_msg=None):
     """Update the connection status for a network in the config."""
     try:
+        # IMPORTANT: Always reload config from disk to avoid overwriting concurrent changes
+        # (e.g., if config_server saved a new network while we were connecting)
+        config = load_config()
+        if not config:
+            logger.error("Failed to load config for status update")
+            return
+
         networks = config.get('wifi_networks', [])
         for network in networks:
             if network.get('ssid') == ssid:
@@ -416,7 +423,7 @@ def try_saved_networks(config, max_retries=2):
                         display_message(f"Connected to {ssid[:15]}", 2)
 
                         # Update network status to success
-                        update_network_status(config, ssid, success=True)
+                        update_network_status(ssid, success=True)
 
                         # Clear password_updated flag if it was set
                         if password_updated:
@@ -451,7 +458,7 @@ def try_saved_networks(config, max_retries=2):
         display_message(f"Failed: {ssid[:15]}", 2)
 
         # Update network status to failed
-        update_network_status(config, ssid, success=False, error_msg="Connection failed after retries")
+        update_network_status(ssid, success=False, error_msg="Connection failed after retries")
 
         time.sleep(1)
 
