@@ -277,26 +277,32 @@ def search_stations():
 
         logger.info(f"Searching for stations with query: {query}")
 
-        # Use VBB API to search for stations (groups stops by station)
-        vbb_api_url = 'https://v6.vbb.transport.rest/stations'
+        # Use VBB API /locations endpoint which is more straightforward
+        vbb_api_url = 'https://v6.vbb.transport.rest/locations'
         params = {
             'query': query,
-            'results': 20  # Limit to 20 results
+            'results': 20,  # Limit to 20 results
+            'stops': True,
+            'addresses': False,
+            'poi': False
         }
 
         response = requests.get(vbb_api_url, params=params, timeout=10)
         response.raise_for_status()
-        
-        stations_data = response.json()
-        
-        # Format the response - extract stop IDs from stations and deduplicate by name
-        # (stations can have multiple entries for different directions/platforms)
+
+        locations_data = response.json()
+
+        # Format the response - extract stations and deduplicate by name
         seen_stations = {}
-        for station_id, station in stations_data.items():
-            station_name = station.get('name', '')
-            
+        for location in locations_data:
+            if location.get('type') != 'stop':
+                continue
+
+            station_name = location.get('name', '')
+            station_id = location.get('id', '')
+
             # Extract base stop ID from station ID format: "de:11000:900100003" -> "900100003"
-            stop_id = None
+            stop_id = station_id
             if ':' in station_id:
                 parts = station_id.split(':')
                 if len(parts) >= 3:
@@ -304,43 +310,18 @@ def search_stations():
                     # Handle formats like "de:11000:900100003::1" -> "900100003"
                     base_part = parts[2].split('::')[0]
                     stop_id = base_part
-            
+
             # Deduplicate by station name (keep first occurrence)
-            if stop_id and station_name not in seen_stations:
+            if stop_id and station_name and station_name not in seen_stations:
                 seen_stations[station_name] = {
                     'id': stop_id,  # Use the base stop ID for departures API
                     'name': station_name,
-                    'latitude': station.get('location', {}).get('latitude'),
-                    'longitude': station.get('location', {}).get('longitude'),
-                    'stops_count': len(station.get('stops', [])),
-                    'products': {}  # Will be populated from /locations if needed
+                    'latitude': location.get('location', {}).get('latitude'),
+                    'longitude': location.get('location', {}).get('longitude'),
+                    'products': location.get('products', {})
                 }
-        
-        stations = list(seen_stations.values())
 
-        # Fetch product info from /locations endpoint for better data
-        if stations:
-            try:
-                locations_url = 'https://v6.vbb.transport.rest/locations'
-                for station in stations[:10]:  # Limit to avoid too many API calls
-                    loc_params = {
-                        'query': station['name'],
-                        'results': 3,
-                        'stops': True,
-                        'addresses': False,
-                        'poi': False
-                    }
-                    loc_response = requests.get(locations_url, params=loc_params, timeout=5)
-                    if loc_response.status_code == 200:
-                        loc_data = loc_response.json()
-                        if loc_data:
-                            # Find matching stop by ID (check if our stop_id is in the location ID)
-                            for loc in loc_data:
-                                if loc.get('type') == 'stop' and station['id'] in loc.get('id', ''):
-                                    station['products'] = loc.get('products', {})
-                                    break
-            except Exception as e:
-                logger.warning(f"Could not fetch products info: {e}")
+        stations = list(seen_stations.values())
 
         logger.info(f"Found {len(stations)} stations matching '{query}'")
         
