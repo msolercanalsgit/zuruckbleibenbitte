@@ -383,16 +383,21 @@
 
                 <div class="section">
                     <h2 class="section-title">Train Station Configuration</h2>
-                    <p class="help-text" style="margin-bottom: 15px;">
-                        Current station: <strong>${escapeHtml(status.train_station?.name || 'Unknown')}</strong>
-                        (ID: ${escapeHtml(status.train_station?.id || 'Unknown')})
-                    </p>
 
-                    <div class="divider" style="margin: 20px 0;"></div>
+                    <div style="background: #fff; padding: 15px; border-radius: 8px; border: 2px solid #d1d5db; margin-bottom: 20px;">
+                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">Currently Displaying</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
+                            ${escapeHtml(status.train_station?.name || 'Unknown')}
+                        </div>
+                        <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
+                            Transport: ${getTransportTypeName(status.transport_type || 'U')}
+                        </div>
+                    </div>
 
                     <form id="station-search-form" style="margin-bottom: 15px;">
                         <div class="form-group">
-                            <label for="station-search">Search for a station</label>
+                            <label for="station-search">Search for a new station</label>
+                            <p class="help-text" style="margin-bottom: 10px;">Enter a station name and click Search to find stations</p>
                             <div style="display: flex; gap: 10px;">
                                 <input
                                     type="text"
@@ -528,24 +533,28 @@
 
                 if (data.success && data.stations && data.stations.length > 0) {
                     resultsDiv.innerHTML = `
-                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px;">
+                        <p class="help-text" style="margin-bottom: 10px; color: #059669; font-weight: 500;">
+                            ✓ Found ${data.stations.length} station${data.stations.length > 1 ? 's' : ''}. Click on a station to change display.
+                        </p>
+                        <div style="max-height: 300px; overflow-y: auto; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px;">
                             ${data.stations.map(station => {
                                 const availableTypes = getAvailableTransportTypes(station.products || {});
                                 const typeLabels = availableTypes.map(t => getTransportTypeName(t)).join(', ');
                                 return `
-                                <div 
-                                    class="station-item" 
-                                    style="padding: 10px; margin-bottom: 5px; background: #f5f5f5; border-radius: 6px; cursor: pointer; transition: background 0.2s;"
+                                <div
+                                    class="station-item"
+                                    style="padding: 12px; margin-bottom: 8px; background: #fff; border: 2px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
                                     onclick="showStationSelection('${escapeHtml(station.id)}', '${escapeHtml(station.name)}', ${JSON.stringify(availableTypes)})"
-                                    onmouseover="this.style.background='#e0e0e0'"
-                                    onmouseout="this.style.background='#f5f5f5'"
+                                    onmouseover="this.style.background='#f0fdf4'; this.style.borderColor='#059669';"
+                                    onmouseout="this.style.background='#fff'; this.style.borderColor='#e5e7eb';"
                                 >
-                                    <div style="font-weight: 500; color: #333;">${escapeHtml(station.name)}</div>
-                                    <div style="font-size: 12px; color: #777; margin-top: 4px;">
+                                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${escapeHtml(station.name)}</div>
+                                    <div style="font-size: 11px; color: #6b7280;">
                                         ID: ${escapeHtml(station.id)}
                                         ${station.distance ? ` • ${Math.round(station.distance)}m away` : ''}
                                     </div>
-                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #4a5568; margin-top: 4px;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
+                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #059669; margin-top: 4px; font-weight: 500;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
+                                    <div style="font-size: 11px; color: #4a5568; margin-top: 6px; font-style: italic;">→ Click to select this station</div>
                                 </div>
                             `;
                             }).join('')}
@@ -564,6 +573,9 @@
             const statusDiv = document.getElementById('station-status-message');
             if (!statusDiv) return;
 
+            // Scroll to the selection dialog
+            statusDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
             // Always show transport type selection dialog (filter available types if provided)
             const allTransportTypes = ['S', 'U', 'T', 'B', 'F', 'E', 'R'];
             const typesToShow = availableTypes.length > 0 ? availableTypes : allTransportTypes;
@@ -573,15 +585,20 @@
             ).join('');
 
             statusDiv.innerHTML = `
-                <div style="padding: 15px; background: #f5f5f5; border-radius: 8px; margin-top: 10px;">
-                    <div style="font-weight: 500; margin-bottom: 10px;">Select transport type for ${escapeHtml(stationName)}:</div>
-                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 10px;">Available at this station: ${typesToShow.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
-                    <select id="station-transport-select" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; margin-bottom: 10px;">
+                <div style="padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-top: 15px;">
+                    <div style="font-size: 18px; font-weight: 600; color: #92400e; margin-bottom: 10px;">
+                        📍 Change station to: ${escapeHtml(stationName)}
+                    </div>
+                    <p style="font-size: 14px; color: #78350f; margin-bottom: 15px;">
+                        Select which transport type you want to display departures for:
+                    </p>
+                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 10px; color: #059669; font-weight: 500;">✓ Available at this station: ${typesToShow.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
+                    <select id="station-transport-select" style="width: 100%; padding: 12px; border: 2px solid #f59e0b; border-radius: 6px; margin-bottom: 15px; font-size: 14px; background: white;">
                         ${transportOptions}
                     </select>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 10px; background: #4a5568; color: white; border: none; border-radius: 6px; cursor: pointer;">Select</button>
-                        <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">✓ Change to This Station</button>
+                        <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 12px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">Cancel</button>
                     </div>
                 </div>
             `;
@@ -618,20 +635,41 @@
 
                 if (data.success) {
                     if (statusDiv) {
-                        statusDiv.innerHTML = `<div class="status success">${escapeHtml(data.message)}</div>`;
+                        statusDiv.innerHTML = `
+                            <div style="padding: 20px; background: #d1fae5; border: 2px solid #059669; border-radius: 8px; margin-top: 15px;">
+                                <div style="font-size: 18px; font-weight: 600; color: #065f46; margin-bottom: 10px;">
+                                    ✓ Station Changed Successfully!
+                                </div>
+                                <p style="font-size: 14px; color: #047857; margin-bottom: 10px;">
+                                    Your display is now showing departures from: <strong>${escapeHtml(stationName)}</strong>
+                                </p>
+                                <p style="font-size: 12px; color: #047857;">
+                                    The physical display will update within 60 seconds.
+                                </p>
+                            </div>
+                        `;
                     }
-                    
+
                     // Clear search results and input
                     if (resultsDiv) resultsDiv.innerHTML = '';
                     if (searchInput) searchInput.value = '';
-                    
-                    // Reload status to show updated station
+
+                    // Reload status to show updated station after a delay
                     setTimeout(() => {
                         checkConnectionStatus();
-                    }, 2000);
+                    }, 3000);
                 } else {
                     if (statusDiv) {
-                        statusDiv.innerHTML = `<div class="status error">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`;
+                        statusDiv.innerHTML = `
+                            <div style="padding: 15px; background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; margin-top: 15px;">
+                                <div style="font-size: 16px; font-weight: 600; color: #991b1b; margin-bottom: 5px;">
+                                    ✗ Error
+                                </div>
+                                <p style="font-size: 14px; color: #991b1b;">
+                                    ${escapeHtml(data.error || 'Unknown error occurred')}
+                                </p>
+                            </div>
+                        `;
                     }
                 }
             } catch (error) {
