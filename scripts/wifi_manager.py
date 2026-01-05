@@ -100,13 +100,20 @@ def load_config():
 
 
 def save_config(config):
-    """Save configuration to JSON file."""
+    """Save configuration to JSON file with sync to ensure persistence."""
     try:
         logger.info(f"Saving config to: {CONFIG_FILE}")
         logger.info(f"Config to save - WiFi networks: {len(config.get('wifi_networks', []))}")
 
-        with open(CONFIG_FILE, 'w') as f:
+        # Write to a temporary file first to avoid corruption
+        temp_file = CONFIG_FILE + '.tmp'
+        with open(temp_file, 'w') as f:
             json.dump(config, f, indent=2)
+            f.flush()  # Flush to OS buffer
+            os.fsync(f.fileno())  # Force write to disk
+
+        # Move temp file to actual config file (atomic operation)
+        os.replace(temp_file, CONFIG_FILE)
 
         # Set file permissions to be readable/writable by owner and group
         # This ensures the file can be accessed by different users/services
@@ -123,6 +130,7 @@ def save_config(config):
                 logger.info(f"Verified save - WiFi networks: {len(saved_config.get('wifi_networks', []))}")
         except Exception as verify_error:
             logger.error(f"Failed to verify saved config: {verify_error}")
+            return False
 
         logger.info("Config saved successfully")
         return True
@@ -290,27 +298,59 @@ def start_ap_mode(ssid, password):
 
 
 def stop_ap_mode():
-    """Stop Access Point mode."""
+    """Stop Access Point mode with retry logic."""
     print("Stopping AP mode...")
 
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Attempting to stop AP mode (attempt {attempt}/{max_retries})")
+            result = subprocess.run(
+                ['nmcli', 'connection', 'down', 'TrainDisplayHotspot'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                logger.info("AP mode stopped successfully")
+                print("AP mode stopped")
+                # Give NetworkManager time to fully release the interface
+                time.sleep(2)
+                return True
+            else:
+                logger.warning(f"Failed to stop AP mode (attempt {attempt}): {result.stderr}")
+                print(f"Failed to stop AP mode (attempt {attempt}): {result.stderr}")
+                if attempt < max_retries:
+                    time.sleep(2)  # Wait before retry
+
+        except Exception as e:
+            logger.error(f"Error stopping AP mode (attempt {attempt}): {e}")
+            print(f"Error stopping AP mode (attempt {attempt}): {e}")
+            if attempt < max_retries:
+                time.sleep(2)  # Wait before retry
+
+    logger.error("Failed to stop AP mode after all retries")
+    print("Failed to stop AP mode after all retries")
+    return False
+
+
+def update_network_status(config, ssid, success, error_msg=None):
+    """Update the connection status for a network in the config."""
     try:
-        result = subprocess.run(
-            ['nmcli', 'connection', 'down', 'TrainDisplayHotspot'],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
-        if result.returncode == 0:
-            print("AP mode stopped")
-            return True
-        else:
-            print(f"Failed to stop AP mode: {result.stderr}")
-            return False
-
+        networks = config.get('wifi_networks', [])
+        for network in networks:
+            if network.get('ssid') == ssid:
+                network['last_attempt'] = time.strftime('%Y-%m-%d %H:%M:%S')
+                network['last_attempt_success'] = success
+                if error_msg:
+                    network['last_error'] = error_msg
+                elif 'last_error' in network:
+                    del network['last_error']
+                break
+        save_config(config)
     except Exception as e:
-        print(f"Error stopping AP mode: {e}")
-        return False
+        logger.error(f"Failed to update network status: {e}")
 
 
 def try_saved_networks(config, max_retries=2):
@@ -375,6 +415,9 @@ def try_saved_networks(config, max_retries=2):
                         print(f"Successfully connected to {ssid} with internet!")
                         display_message(f"Connected to {ssid[:15]}", 2)
 
+                        # Update network status to success
+                        update_network_status(config, ssid, success=True)
+
                         # Clear password_updated flag if it was set
                         if password_updated:
                             config = load_config()
@@ -406,6 +449,10 @@ def try_saved_networks(config, max_retries=2):
         # All retries failed for this network
         print(f"Failed to connect to {ssid} after {max_retries} attempts")
         display_message(f"Failed: {ssid[:15]}", 2)
+
+        # Update network status to failed
+        update_network_status(config, ssid, success=False, error_msg="Connection failed after retries")
+
         time.sleep(1)
 
     return False
@@ -526,6 +573,7 @@ def main():
         print("Waiting for WiFi configuration via web interface...")
 
         check_count = 0
+        last_network_count = 0
         while True:
             # Cycle through setup messages
             if check_count % 4 == 0:
@@ -539,32 +587,51 @@ def main():
 
             check_count += 1
 
-            # Check if WiFi networks have been added to config
+            # Check if WiFi networks have been added or updated in config
             config = load_config()
             if config and config.get('wifi_networks'):
                 networks = config.get('wifi_networks', [])
-                print(f"\n{len(networks)} WiFi network(s) configured!")
-                display_message("WiFi configured!", 2)
-                display_message("Connecting...", 2)
+                current_network_count = len(networks)
 
-                # Stop AP mode
-                stop_ap_mode()
+                # Only attempt connection if config was just added/updated
+                if current_network_count != last_network_count:
+                    last_network_count = current_network_count
+                    print(f"\n{current_network_count} WiFi network(s) configured!")
+                    display_message("WiFi configured!", 2)
+                    display_message("Connecting...", 2)
 
-                # Try to connect to the configured networks
-                if try_saved_networks(config):
-                    display_message("Connected!", 2)
-                    print("Successfully connected to WiFi!")
-                    clear_screen()
-                    return
-                else:
-                    # Failed to connect, go back to AP mode
-                    display_message("Connection failed!", 2)
-                    print("Failed to connect to configured network, restarting AP mode...")
-                    time.sleep(3)
-                    if not start_ap_mode(ap_ssid, ap_password):
-                        print("ERROR: Could not restart AP mode")
-                        break
-                    check_count = 0  # Reset display cycle
+                    # Stop AP mode before trying to connect
+                    if not stop_ap_mode():
+                        logger.error("Failed to stop AP mode, cannot proceed with connection")
+                        display_message("AP stop failed!", 2)
+                        time.sleep(3)
+                        # Continue in loop, don't break
+                        continue
+
+                    # Try to connect to the configured networks
+                    if try_saved_networks(config):
+                        display_message("Connected!", 2)
+                        print("Successfully connected to WiFi!")
+                        logger.info("Successfully connected to WiFi, exiting")
+                        clear_screen()
+                        return
+                    else:
+                        # Failed to connect, but config is already saved for next boot
+                        display_message("Connection failed!", 2)
+                        logger.warning("Failed to connect to configured network")
+                        print("Failed to connect to configured network.")
+                        print("Config has been saved - will try again on next boot.")
+                        print("You can update the password or add a different network via the web interface.")
+                        time.sleep(3)
+
+                        # Restart AP mode so user can fix the config
+                        if not start_ap_mode(ap_ssid, ap_password):
+                            logger.error("Could not restart AP mode after connection failure")
+                            print("ERROR: Could not restart AP mode")
+                            break
+
+                        check_count = 0  # Reset display cycle
+                        # Continue in AP mode, waiting for user to fix config
 
             # Wait before checking again
             time.sleep(1)

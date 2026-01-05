@@ -74,13 +74,20 @@ def load_config():
 
 
 def save_config(config):
-    """Save configuration to JSON file."""
+    """Save configuration to JSON file with sync to ensure persistence."""
     try:
         logger.info(f"Saving config to: {CONFIG_FILE}")
         logger.info(f"Config to save - WiFi networks: {len(config.get('wifi_networks', []))}, Delay: {config.get('delay_minutes', 10)}")
 
-        with open(CONFIG_FILE, 'w') as f:
+        # Write to a temporary file first to avoid corruption
+        temp_file = CONFIG_FILE + '.tmp'
+        with open(temp_file, 'w') as f:
             json.dump(config, f, indent=2)
+            f.flush()  # Flush to OS buffer
+            os.fsync(f.fileno())  # Force write to disk
+
+        # Move temp file to actual config file (atomic operation)
+        os.replace(temp_file, CONFIG_FILE)
 
         # Set file permissions to be readable/writable by owner and group
         # This ensures the file can be accessed by different users/services
@@ -97,6 +104,7 @@ def save_config(config):
                 logger.info(f"Verified save - WiFi networks: {len(saved_config.get('wifi_networks', []))}, Delay: {saved_config.get('delay_minutes', 10)}")
         except Exception as verify_error:
             logger.error(f"Failed to verify saved config: {verify_error}")
+            return False
 
         logger.info("Config saved successfully")
         return True
@@ -106,29 +114,11 @@ def save_config(config):
 
 
 def restart_wifi_async():
-    """Restart WiFi manager in background after a delay."""
-    def restart():
-        print("Waiting 3 seconds before restarting WiFi...")
-        time.sleep(3)
-        print("Restarting WiFi manager...")
-        try:
-            # Stop the current hotspot
-            subprocess.run(
-                ['nmcli', 'connection', 'down', 'TrainDisplayHotspot'],
-                capture_output=True,
-                timeout=10
-            )
-            # Run wifi_manager.py to connect to the new network
-            subprocess.run(
-                ['python3', os.path.join(SCRIPT_DIR, 'wifi_manager.py')],
-                timeout=60
-            )
-        except Exception as e:
-            print(f"Error restarting WiFi: {e}")
-
-    thread = threading.Thread(target=restart)
-    thread.daemon = True
-    thread.start()
+    """Signal that WiFi config has changed - wifi_manager will detect it."""
+    # Note: We don't actually restart anything here to avoid race conditions.
+    # The wifi_manager running in AP mode will detect the new config and handle it.
+    logger.info("WiFi configuration updated - wifi_manager will detect and apply changes")
+    pass
 
 
 def restart_train_display_async():
@@ -168,10 +158,18 @@ def index():
 
 @app.route('/api/networks', methods=['GET'])
 def get_networks():
-    """Get list of saved WiFi networks."""
+    """Get list of saved WiFi networks with status."""
     config = load_config()
-    # Don't send passwords to the frontend
-    networks = [{'ssid': n['ssid']} for n in config.get('wifi_networks', [])]
+    # Don't send passwords to the frontend, but include status info
+    networks = []
+    for n in config.get('wifi_networks', []):
+        network_info = {
+            'ssid': n['ssid'],
+            'last_attempt': n.get('last_attempt'),
+            'last_attempt_success': n.get('last_attempt_success'),
+            'last_error': n.get('last_error')
+        }
+        networks.append(network_info)
     return jsonify({'networks': networks})
 
 
