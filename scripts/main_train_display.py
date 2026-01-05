@@ -35,7 +35,8 @@ def load_config():
                 "train_station": {
                     "id": "900120004",
                     "name": "Warschauer Straße"
-                }
+                },
+                "transport_type": "U"  # Default to U-Bahn
             }
 
         with open(CONFIG_FILE, 'r') as f:
@@ -49,14 +50,17 @@ def load_config():
             "train_station": {
                 "id": "900120004",
                 "name": "Warschauer Straße"
-            }
+            },
+            "transport_type": "U"  # Default to U-Bahn
         }
 
 # Initial load
 logger.info("Train Display starting up...")
 config = load_config()
 initial_delay = config.get('delay_minutes', 10)
+initial_transport_type = config.get('transport_type', 'U')
 logger.info(f"Initial delay setting: {initial_delay} minutes")
+logger.info(f"Initial transport type: {initial_transport_type}")
 id = config.get('train_station', {}).get('id', '900120004')
 logger.info(f"Station ID: {id}")
 url = 'https://v6.vbb.transport.rest/stops/' + id + '/departures?duration=60&duration=60'
@@ -97,9 +101,17 @@ last_delay = initial_delay  # Track last known delay value
 while True:
     #Basic info
     try:
-        # Reload config to get latest delay_minutes setting
+        # Reload config to get latest settings
         config = load_config()
         delay_minutes = config.get('delay_minutes', 10)
+        transport_type = config.get('transport_type', 'U')  # Default to U-Bahn
+        station_id = config.get('train_station', {}).get('id', '900120004')
+        
+        # Update URL if station changed
+        current_url = 'https://v6.vbb.transport.rest/stops/' + station_id + '/departures?duration=60&duration=60'
+        if current_url != url:
+            url = current_url
+            logger.info(f"Station changed to: {config.get('train_station', {}).get('name', 'Unknown')} (ID: {station_id})")
 
         # Log when delay changes
         if delay_minutes != last_delay:
@@ -112,23 +124,31 @@ while True:
         data = data[data.Date.notnull()].reset_index()
         tz_info = data['Date'][0].tzinfo
 
-        future_ubahns = data[
+        # Filter by configured transport type
+        future_departures = data[
             (data['Date'] > datetime.now(tz_info) + timedelta(minutes = delay_minutes))
-            & (data['line.productName'] == 'U')].reset_index()
-        future_ubahns = future_ubahns[['Date','direction','line.name','line.productName']]
+            & (data['line.productName'] == transport_type)].reset_index()
+        future_departures = future_departures[['Date','direction','line.name','line.productName']]
+
+        # Check if we have enough departures
+        if len(future_departures) < 2:
+            logger.warning(f"Not enough {transport_type} departures found (found {len(future_departures)})")
+            # Fallback: show whatever is available or show error message
+            if len(future_departures) == 0:
+                raise ValueError(f"No {transport_type} departures found")
 
         #Data scraped
         #building text:
-        departure_time_0 = future_ubahns['Date'][0]
-        departure_time_1 = future_ubahns['Date'][1]
-        station_0 = str(future_ubahns['direction'][0]) + '         '
-        station_1 = str(future_ubahns['direction'][1]) + '         '
+        departure_time_0 = future_departures['Date'][0]
+        departure_time_1 = future_departures['Date'][1] if len(future_departures) > 1 else future_departures['Date'][0]
+        station_0 = str(future_departures['direction'][0]) + '         '
+        station_1 = str(future_departures['direction'][1]) + '         ' if len(future_departures) > 1 else station_0
 
-        line_0 = future_ubahns['line.name'][0]
-        line_1 = future_ubahns['line.name'][1]
+        line_0 = future_departures['line.name'][0]
+        line_1 = future_departures['line.name'][1] if len(future_departures) > 1 else line_0
 
-        train_0 = future_ubahns['line.productName'][0]
-        train_1 = future_ubahns['line.productName'][1]
+        train_0 = future_departures['line.productName'][0]
+        train_1 = future_departures['line.productName'][1] if len(future_departures) > 1 else train_0
 
         time_diff_0 = departure_time_0 - datetime.now(tz_info)
         time_diff_1 = departure_time_1 - datetime.now(tz_info)

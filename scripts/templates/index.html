@@ -242,6 +242,14 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .station-item {
+            transition: background 0.2s;
+        }
+
+        .station-item:hover {
+            background: #e0e0e0 !important;
+        }
     </style>
 </head>
 <body>
@@ -384,7 +392,41 @@
                         Current station: <strong>${escapeHtml(status.train_station?.name || 'Unknown')}</strong>
                         (ID: ${escapeHtml(status.train_station?.id || 'Unknown')})
                     </p>
-                    <p class="help-text">Station configuration coming soon...</p>
+                    <p class="help-text" style="margin-bottom: 15px;">
+                        Current transport type: <strong>${getTransportTypeName(status.transport_type || 'U')}</strong>
+                    </p>
+                    
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Transport Type Filter</label>
+                        <select id="transport-type-select" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                            <option value="S" ${(status.transport_type || 'U') === 'S' ? 'selected' : ''}>S-Bahn (Suburban)</option>
+                            <option value="U" ${(status.transport_type || 'U') === 'U' ? 'selected' : ''}>U-Bahn (Subway)</option>
+                            <option value="T" ${(status.transport_type || 'U') === 'T' ? 'selected' : ''}>Tram</option>
+                            <option value="B" ${(status.transport_type || 'U') === 'B' ? 'selected' : ''}>Bus</option>
+                            <option value="F" ${(status.transport_type || 'U') === 'F' ? 'selected' : ''}>Ferry</option>
+                            <option value="E" ${(status.transport_type || 'U') === 'E' ? 'selected' : ''}>Express (IC/ICE)</option>
+                            <option value="R" ${(status.transport_type || 'U') === 'R' ? 'selected' : ''}>Regional (RB/RE)</option>
+                        </select>
+                        <button type="button" id="update-transport-btn" style="margin-top: 10px; width: 100%;">Update Transport Type</button>
+                    </div>
+
+                    <div class="divider" style="margin: 20px 0;"></div>
+
+                    <form id="station-search-form" style="margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="station-search">Search for a station</label>
+                            <input
+                                type="text"
+                                id="station-search"
+                                name="station-search"
+                                placeholder="Enter station name (e.g., Alexanderplatz)"
+                                autocomplete="off"
+                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                            >
+                            <div id="station-results" style="margin-top: 10px;"></div>
+                        </div>
+                    </form>
+                    <div id="station-status-message"></div>
                 </div>
 
                 <div class="divider"></div>
@@ -402,6 +444,63 @@
                 e.preventDefault();
                 await updateDelay();
             });
+
+            // Add event listener for transport type update
+            const transportTypeSelect = document.getElementById('transport-type-select');
+            const updateTransportBtn = document.getElementById('update-transport-btn');
+            if (updateTransportBtn) {
+                updateTransportBtn.addEventListener('click', async () => {
+                    await updateTransportType();
+                });
+            }
+
+            // Add event listener for station search
+            const stationSearchInput = document.getElementById('station-search');
+            if (stationSearchInput) {
+                let searchTimeout;
+                stationSearchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.trim();
+                    
+                    // Clear previous timeout
+                    clearTimeout(searchTimeout);
+                    
+                    // Clear results if query is empty
+                    if (!query) {
+                        document.getElementById('station-results').innerHTML = '';
+                        return;
+                    }
+                    
+                    // Debounce search - wait 500ms after user stops typing
+                    searchTimeout = setTimeout(() => {
+                        searchStations(query);
+                    }, 500);
+                });
+            }
+        }
+
+        function getTransportTypeName(code) {
+            const names = {
+                'S': 'S-Bahn (Suburban)',
+                'U': 'U-Bahn (Subway)',
+                'T': 'Tram',
+                'B': 'Bus',
+                'F': 'Ferry',
+                'E': 'Express (IC/ICE)',
+                'R': 'Regional (RB/RE)'
+            };
+            return names[code] || code;
+        }
+
+        function getAvailableTransportTypes(products) {
+            const types = [];
+            if (products.suburban) types.push('S');
+            if (products.subway) types.push('U');
+            if (products.tram) types.push('T');
+            if (products.bus) types.push('B');
+            if (products.ferry) types.push('F');
+            if (products.express) types.push('E');
+            if (products.regional) types.push('R');
+            return types;
         }
 
         async function updateDelay() {
@@ -434,6 +533,180 @@
             } catch (error) {
                 console.error('Error:', error);
                 showConnectedMessage('Network error. Please try again.', 'error');
+            }
+        }
+
+        async function searchStations(query) {
+            const resultsDiv = document.getElementById('station-results');
+            if (!resultsDiv) return;
+
+            try {
+                resultsDiv.innerHTML = '<p class="help-text">Searching...</p>';
+                
+                const response = await fetch(`/api/stations/search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (data.success && data.stations && data.stations.length > 0) {
+                    resultsDiv.innerHTML = `
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px;">
+                            ${data.stations.map(station => {
+                                const availableTypes = getAvailableTransportTypes(station.products || {});
+                                const typeLabels = availableTypes.map(t => getTransportTypeName(t)).join(', ');
+                                return `
+                                <div 
+                                    class="station-item" 
+                                    style="padding: 10px; margin-bottom: 5px; background: #f5f5f5; border-radius: 6px; cursor: pointer; transition: background 0.2s;"
+                                    onclick="showStationSelection('${escapeHtml(station.id)}', '${escapeHtml(station.name)}', ${JSON.stringify(availableTypes)})"
+                                    onmouseover="this.style.background='#e0e0e0'"
+                                    onmouseout="this.style.background='#f5f5f5'"
+                                >
+                                    <div style="font-weight: 500; color: #333;">${escapeHtml(station.name)}</div>
+                                    <div style="font-size: 12px; color: #777; margin-top: 4px;">
+                                        ID: ${escapeHtml(station.id)}
+                                        ${station.distance ? ` • ${Math.round(station.distance)}m away` : ''}
+                                    </div>
+                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #667eea; margin-top: 4px;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
+                                </div>
+                            `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = '<p class="help-text">No stations found. Try a different search term.</p>';
+                }
+            } catch (error) {
+                console.error('Error searching stations:', error);
+                resultsDiv.innerHTML = '<p class="help-text" style="color: #c62828;">Error searching stations. Please try again.</p>';
+            }
+        }
+
+        function showStationSelection(stationId, stationName, availableTypes) {
+            const statusDiv = document.getElementById('station-status-message');
+            if (!statusDiv) return;
+
+            if (availableTypes.length === 0) {
+                // No transport types available, just select the station with current transport type
+                const currentTransportType = document.getElementById('transport-type-select')?.value || 'U';
+                selectStation(stationId, stationName, currentTransportType);
+                return;
+            }
+
+            // Show transport type selection dialog
+            const transportOptions = availableTypes.map(type => 
+                `<option value="${type}">${getTransportTypeName(type)}</option>`
+            ).join('');
+
+            statusDiv.innerHTML = `
+                <div style="padding: 15px; background: #f5f5f5; border-radius: 8px; margin-top: 10px;">
+                    <div style="font-weight: 500; margin-bottom: 10px;">Select transport type for ${escapeHtml(stationName)}:</div>
+                    <select id="station-transport-select" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; margin-bottom: 10px;">
+                        ${transportOptions}
+                    </select>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">Select</button>
+                        <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 10px; background: #ccc; color: #333; border: none; border-radius: 6px; cursor: pointer;">Cancel</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function selectStation(stationId, stationName, transportType = null) {
+            const statusDiv = document.getElementById('station-status-message');
+            const resultsDiv = document.getElementById('station-results');
+            const searchInput = document.getElementById('station-search');
+
+            // Use provided transport type or current selection
+            if (!transportType) {
+                transportType = document.getElementById('transport-type-select')?.value || 'U';
+            }
+
+            try {
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="status info">Updating station...</div>';
+                }
+
+                const response = await fetch('/api/station/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        station_id: stationId,
+                        station_name: stationName,
+                        transport_type: transportType
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `<div class="status success">${escapeHtml(data.message)}</div>`;
+                    }
+                    
+                    // Clear search results and input
+                    if (resultsDiv) resultsDiv.innerHTML = '';
+                    if (searchInput) searchInput.value = '';
+                    
+                    // Reload status to show updated station
+                    setTimeout(() => {
+                        checkConnectionStatus();
+                    }, 2000);
+                } else {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `<div class="status error">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating station:', error);
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="status error">Network error. Please try again.</div>';
+                }
+            }
+        }
+
+        async function updateTransportType() {
+            const transportTypeSelect = document.getElementById('transport-type-select');
+            const statusDiv = document.getElementById('station-status-message');
+            
+            if (!transportTypeSelect) return;
+
+            const transportType = transportTypeSelect.value;
+
+            try {
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="status info">Updating transport type...</div>';
+                }
+
+                const response = await fetch('/api/transport/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ transport_type: transportType })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `<div class="status success">${escapeHtml(data.message)}</div>`;
+                    }
+                    
+                    // Reload status to show updated transport type
+                    setTimeout(() => {
+                        checkConnectionStatus();
+                    }, 2000);
+                } else {
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `<div class="status error">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating transport type:', error);
+                if (statusDiv) {
+                    statusDiv.innerHTML = '<div class="status error">Network error. Please try again.</div>';
+                }
             }
         }
 

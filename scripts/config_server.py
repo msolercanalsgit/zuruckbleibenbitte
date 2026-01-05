@@ -12,6 +12,7 @@ import threading
 import time
 import logging
 from datetime import datetime
+import requests
 
 # Set up logging
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +49,8 @@ def load_config():
                     "ssid": "TrainDisplay-Setup",
                     "password": "trainsetup123"
                 },
-                "delay_minutes": 10
+                "delay_minutes": 10,
+                "transport_type": "U"
             }
             logger.info("Returning default config")
             return default_config
@@ -69,7 +71,8 @@ def load_config():
                 "ssid": "TrainDisplay-Setup",
                 "password": "trainsetup123"
             },
-            "delay_minutes": 10
+            "delay_minutes": 10,
+            "transport_type": "U"
         }
 
 
@@ -263,31 +266,252 @@ def remove_wifi():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/stations/search', methods=['GET'])
+def search_stations():
+    """Search for stations by name using VBB API."""
+    try:
+        query = request.args.get('query', '').strip()
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+
+        logger.info(f"Searching for stations with query: {query}")
+
+        # Use VBB API to search for stations (groups stops by station)
+        vbb_api_url = 'https://v6.vbb.transport.rest/stations'
+        params = {
+            'query': query,
+            'results': 20  # Limit to 20 results
+        }
+
+        response = requests.get(vbb_api_url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        stations_data = response.json()
+        
+        # Format the response - extract stop IDs from stations and deduplicate by name
+        # (stations can have multiple entries for different directions/platforms)
+        seen_stations = {}
+        for station_id, station in stations_data.items():
+            station_name = station.get('name', '')
+            
+            # Extract base stop ID from station ID format: "de:11000:900100003" -> "900100003"
+            stop_id = None
+            if ':' in station_id:
+                parts = station_id.split(':')
+                if len(parts) >= 3:
+                    # Get the numeric part: "de:11000:900100003" -> "900100003"
+                    # Handle formats like "de:11000:900100003::1" -> "900100003"
+                    base_part = parts[2].split('::')[0]
+                    stop_id = base_part
+            
+            # Deduplicate by station name (keep first occurrence)
+            if stop_id and station_name not in seen_stations:
+                seen_stations[station_name] = {
+                    'id': stop_id,  # Use the base stop ID for departures API
+                    'name': station_name,
+                    'latitude': station.get('location', {}).get('latitude'),
+                    'longitude': station.get('location', {}).get('longitude'),
+                    'stops_count': len(station.get('stops', [])),
+                    'products': {}  # Will be populated from /locations if needed
+                }
+        
+        stations = list(seen_stations.values())
+
+        # Fetch product info from /locations endpoint for better data
+        if stations:
+            try:
+                locations_url = 'https://v6.vbb.transport.rest/locations'
+                for station in stations[:10]:  # Limit to avoid too many API calls
+                    loc_params = {
+                        'query': station['name'],
+                        'results': 3,
+                        'stops': True,
+                        'addresses': False,
+                        'poi': False
+                    }
+                    loc_response = requests.get(locations_url, params=loc_params, timeout=5)
+                    if loc_response.status_code == 200:
+                        loc_data = loc_response.json()
+                        if loc_data:
+                            # Find matching stop by ID (check if our stop_id is in the location ID)
+                            for loc in loc_data:
+                                if loc.get('type') == 'stop' and station['id'] in loc.get('id', ''):
+                                    station['products'] = loc.get('products', {})
+                                    break
+            except Exception as e:
+                logger.warning(f"Could not fetch products info: {e}")
+
+        logger.info(f"Found {len(stations)} stations matching '{query}'")
+        
+        return jsonify({
+            'success': True,
+            'stations': stations,
+            'count': len(stations)
+        })
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error calling VBB API: {e}")
+        return jsonify({'success': False, 'error': f'Failed to search stations: {str(e)}'}), 500
+    except Exception as e:
+        logger.error(f"Error searching stations: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/stations/nearby', methods=['GET'])
+def nearby_stations():
+    """Find stations near a given geolocation using VBB API."""
+    try:
+        latitude = request.args.get('latitude')
+        longitude = request.args.get('longitude')
+        
+        if not latitude or not longitude:
+            return jsonify({'success': False, 'error': 'Latitude and longitude parameters are required'}), 400
+
+        try:
+            latitude = float(latitude)
+            longitude = float(longitude)
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid latitude or longitude format'}), 400
+
+        logger.info(f"Searching for stations near ({latitude}, {longitude})")
+
+        # Use VBB API to find nearby locations
+        vbb_api_url = 'https://v6.vbb.transport.rest/locations/nearby'
+        params = {
+            'latitude': latitude,
+            'longitude': longitude,
+            'results': 20,  # Limit to 20 results
+            'stops': True,  # Only return stops/stations
+            'poi': False,  # Don't return POIs
+            'language': 'en'
+        }
+
+        response = requests.get(vbb_api_url, params=params, timeout=10)
+        response.raise_for_status()
+        
+        locations = response.json()
+        
+        # Format the response
+        stations = []
+        for location in locations:
+            if location.get('type') == 'stop':
+                stations.append({
+                    'id': location.get('id'),
+                    'name': location.get('name'),
+                    'latitude': location.get('location', {}).get('latitude'),
+                    'longitude': location.get('location', {}).get('longitude'),
+                    'distance': location.get('distance'),  # Distance in meters
+                    'products': location.get('products', {})
+                })
+
+        logger.info(f"Found {len(stations)} stations near ({latitude}, {longitude})")
+        
+        return jsonify({
+            'success': True,
+            'stations': stations,
+            'count': len(stations)
+        })
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error calling VBB API: {e}")
+        return jsonify({'success': False, 'error': f'Failed to find nearby stations: {str(e)}'}), 500
+    except Exception as e:
+        logger.error(f"Error finding nearby stations: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/station/update', methods=['POST'])
 def update_station():
-    """Update train station configuration (for future use)."""
+    """Update train station configuration."""
     try:
         data = request.get_json()
         station_id = data.get('station_id', '').strip()
         station_name = data.get('station_name', '').strip()
+        transport_type = data.get('transport_type', '').strip()
 
         if not station_id:
             return jsonify({'success': False, 'error': 'Station ID is required'}), 400
+
+        # Validate transport type if provided
+        valid_transport_types = ['S', 'U', 'T', 'B', 'F', 'E', 'R']
+        if transport_type and transport_type not in valid_transport_types:
+            return jsonify({'success': False, 'error': f'Invalid transport type. Must be one of: {", ".join(valid_transport_types)}'}), 400
+
+        logger.info(f"Updating station to: {station_name} (ID: {station_id})" + (f", transport type: {transport_type}" if transport_type else ""))
 
         config = load_config()
         config['train_station'] = {
             'id': station_id,
             'name': station_name
         }
-        save_config(config)
+        
+        # Update transport type if provided
+        if transport_type:
+            config['transport_type'] = transport_type
+        
+        if save_config(config):
+            logger.info(f"Station updated successfully to: {station_name}")
+        else:
+            logger.error("Failed to save config after station update")
+            return jsonify({'success': False, 'error': 'Failed to save configuration'}), 500
+
+        # Restart the train display service to use the new station
+        restart_train_display_async()
+
+        message = f'Updated station to: {station_name}'
+        if transport_type:
+            transport_names = {'S': 'S-Bahn', 'U': 'U-Bahn', 'T': 'Tram', 'B': 'Bus', 'F': 'Ferry', 'E': 'Express', 'R': 'Regional'}
+            message += f' ({transport_names.get(transport_type, transport_type)})'
+        message += '. Restarting display...'
 
         return jsonify({
             'success': True,
-            'message': f'Updated station to: {station_name}'
+            'message': message
         })
 
     except Exception as e:
-        print(f"Error updating station: {e}")
+        logger.error(f"Error updating station: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/transport/update', methods=['POST'])
+def update_transport_type():
+    """Update transport type filter configuration."""
+    try:
+        data = request.get_json()
+        transport_type = data.get('transport_type', '').strip().upper()
+
+        # Validate transport type
+        valid_transport_types = ['S', 'U', 'T', 'B', 'F', 'E', 'R']
+        if not transport_type:
+            return jsonify({'success': False, 'error': 'Transport type is required'}), 400
+        
+        if transport_type not in valid_transport_types:
+            return jsonify({'success': False, 'error': f'Invalid transport type. Must be one of: {", ".join(valid_transport_types)}'}), 400
+
+        logger.info(f"Updating transport type to: {transport_type}")
+
+        config = load_config()
+        config['transport_type'] = transport_type
+        
+        if save_config(config):
+            logger.info(f"Transport type updated successfully to: {transport_type}")
+        else:
+            logger.error("Failed to save config after transport type update")
+            return jsonify({'success': False, 'error': 'Failed to save configuration'}), 500
+
+        # Restart the train display service
+        restart_train_display_async()
+
+        transport_names = {'S': 'S-Bahn', 'U': 'U-Bahn', 'T': 'Tram', 'B': 'Bus', 'F': 'Ferry', 'E': 'Express', 'R': 'Regional'}
+        return jsonify({
+            'success': True,
+            'message': f'Updated transport type to {transport_names.get(transport_type, transport_type)}. Restarting display...'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating transport type: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -325,6 +549,7 @@ def get_status():
             'wifi_connected': is_connected,
             'current_ssid': current_ssid,
             'train_station': config.get('train_station', {}),
+            'transport_type': config.get('transport_type', 'U'),
             'saved_networks_count': len(config.get('wifi_networks', [])),
             'delay_minutes': config.get('delay_minutes', 10)
         })
