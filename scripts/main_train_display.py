@@ -5,20 +5,45 @@ import time
 import time
 import sys
 import json
+import logging
 from rgbmatrix import RGBMatrix, RGBMatrixOptions, graphics
 
 # Load configuration
 import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
+LOG_FILE = os.path.join(SCRIPT_DIR, "main_train_display.log")
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def load_config():
     """Load configuration from JSON file."""
     try:
+        if not os.path.exists(CONFIG_FILE):
+            logger.warning(f"Config file does not exist: {CONFIG_FILE}")
+            return {
+                "delay_minutes": 10,
+                "train_station": {
+                    "id": "900120004",
+                    "name": "Warschauer Straße"
+                }
+            }
+
         with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
+            config = json.load(f)
+            # Only log this during startup and when delay changes
+            return config
     except Exception as e:
-        print(f"Error loading config: {e}")
+        logger.error(f"Error loading config: {e}", exc_info=True)
         return {
             "delay_minutes": 10,
             "train_station": {
@@ -27,9 +52,13 @@ def load_config():
             }
         }
 
+# Initial load
+logger.info("Train Display starting up...")
 config = load_config()
-delay_minutes = config.get('delay_minutes', 10)
-id = config.get('train_station', {}).get('id', '900120004')  
+initial_delay = config.get('delay_minutes', 10)
+logger.info(f"Initial delay setting: {initial_delay} minutes")
+id = config.get('train_station', {}).get('id', '900120004')
+logger.info(f"Station ID: {id}")
 url = 'https://v6.vbb.transport.rest/stops/' + id + '/departures?duration=60&duration=60'
 options = RGBMatrixOptions()
 options.rows = 32
@@ -63,9 +92,20 @@ textColor = graphics.Color(255, 1, 200) #color of the text
 
 
 
+last_delay = initial_delay  # Track last known delay value
+
 while True:
     #Basic info
     try:
+        # Reload config to get latest delay_minutes setting
+        config = load_config()
+        delay_minutes = config.get('delay_minutes', 10)
+
+        # Log when delay changes
+        if delay_minutes != last_delay:
+            logger.info(f"Delay setting changed from {last_delay} to {delay_minutes} minutes")
+            last_delay = delay_minutes
+
         res = requests.get(url= url)
         data = pd.json_normalize(res.json(), record_path =['departures'])
         data['Date'] = pd.to_datetime(data['when'], format = '%Y-%m-%dT%H:%M:%S%z')
@@ -118,7 +158,7 @@ while True:
 
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
     except Exception as error:
-        print(error)
+        logger.error(f"Error in main loop: {error}", exc_info=True)
         texto_conectando = 'Connecting to Wifi.Wait 60 sec.'
         connectando_imprimir= graphics.DrawText(offscreen_canvas, font_small, 3, 14, textColor, texto_conectando)
 

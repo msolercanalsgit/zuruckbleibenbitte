@@ -9,9 +9,22 @@ import json
 import subprocess
 import time
 import socket
+import logging
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
+LOG_FILE = os.path.join(SCRIPT_DIR, "wifi_manager.log")
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 AP_INTERFACE = "wlan0"
 AP_SSID_DEFAULT = "TrainDisplay-Setup"
@@ -58,11 +71,15 @@ def clear_screen():
 def load_config():
     """Load configuration from JSON file."""
     try:
+        logger.info(f"Loading config from: {CONFIG_FILE}")
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
-                return json.load(f)
+                config = json.load(f)
+                logger.info(f"Config loaded. WiFi networks: {len(config.get('wifi_networks', []))}")
+                return config
         else:
             # Create default config if it doesn't exist
+            logger.warning(f"Config file does not exist, creating default: {CONFIG_FILE}")
             default_config = {
                 "wifi_networks": [],
                 "train_station": {
@@ -72,23 +89,45 @@ def load_config():
                 "ap_mode": {
                     "ssid": AP_SSID_DEFAULT,
                     "password": AP_PASSWORD_DEFAULT
-                }
+                },
+                "delay_minutes": 10
             }
             save_config(default_config)
             return default_config
     except Exception as e:
-        print(f"Error loading config: {e}")
+        logger.error(f"Error loading config: {e}", exc_info=True)
         return None
 
 
 def save_config(config):
     """Save configuration to JSON file."""
     try:
+        logger.info(f"Saving config to: {CONFIG_FILE}")
+        logger.info(f"Config to save - WiFi networks: {len(config.get('wifi_networks', []))}")
+
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
+
+        # Set file permissions to be readable/writable by owner and group
+        # This ensures the file can be accessed by different users/services
+        try:
+            os.chmod(CONFIG_FILE, 0o664)
+            logger.info(f"File permissions set to 0o664 for {CONFIG_FILE}")
+        except Exception as chmod_error:
+            logger.warning(f"Could not set file permissions: {chmod_error}")
+
+        # Verify the save
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                logger.info(f"Verified save - WiFi networks: {len(saved_config.get('wifi_networks', []))}")
+        except Exception as verify_error:
+            logger.error(f"Failed to verify saved config: {verify_error}")
+
+        logger.info("Config saved successfully")
         return True
     except Exception as e:
-        print(f"Error saving config: {e}")
+        logger.error(f"Error saving config: {e}", exc_info=True)
         return False
 
 

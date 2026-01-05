@@ -10,8 +10,23 @@ import subprocess
 from flask import Flask, render_template, request, jsonify, redirect
 import threading
 import time
+import logging
+from datetime import datetime
 
+# Set up logging
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_FILE = os.path.join(SCRIPT_DIR, "config_server.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 CONFIG_FILE = os.path.join(SCRIPT_DIR, "config.json")
 
 app = Flask(__name__, template_folder=os.path.join(SCRIPT_DIR, 'templates'))
@@ -20,10 +35,30 @@ app = Flask(__name__, template_folder=os.path.join(SCRIPT_DIR, 'templates'))
 def load_config():
     """Load configuration from JSON file."""
     try:
+        logger.info(f"Loading config from: {CONFIG_FILE}")
+        if not os.path.exists(CONFIG_FILE):
+            logger.warning(f"Config file does not exist: {CONFIG_FILE}")
+            default_config = {
+                "wifi_networks": [],
+                "train_station": {
+                    "id": "900120004",
+                    "name": "Warschauer Straße"
+                },
+                "ap_mode": {
+                    "ssid": "TrainDisplay-Setup",
+                    "password": "trainsetup123"
+                },
+                "delay_minutes": 10
+            }
+            logger.info("Returning default config")
+            return default_config
+
         with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
+            config = json.load(f)
+            logger.info(f"Config loaded successfully. WiFi networks: {len(config.get('wifi_networks', []))}, Delay: {config.get('delay_minutes', 10)}")
+            return config
     except Exception as e:
-        print(f"Error loading config: {e}")
+        logger.error(f"Error loading config: {e}", exc_info=True)
         return {
             "wifi_networks": [],
             "train_station": {
@@ -41,11 +76,32 @@ def load_config():
 def save_config(config):
     """Save configuration to JSON file."""
     try:
+        logger.info(f"Saving config to: {CONFIG_FILE}")
+        logger.info(f"Config to save - WiFi networks: {len(config.get('wifi_networks', []))}, Delay: {config.get('delay_minutes', 10)}")
+
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f, indent=2)
+
+        # Set file permissions to be readable/writable by owner and group
+        # This ensures the file can be accessed by different users/services
+        try:
+            os.chmod(CONFIG_FILE, 0o664)
+            logger.info(f"File permissions set to 0o664 for {CONFIG_FILE}")
+        except Exception as chmod_error:
+            logger.warning(f"Could not set file permissions: {chmod_error}")
+
+        # Verify the save by reading it back
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                saved_config = json.load(f)
+                logger.info(f"Verified save - WiFi networks: {len(saved_config.get('wifi_networks', []))}, Delay: {saved_config.get('delay_minutes', 10)}")
+        except Exception as verify_error:
+            logger.error(f"Failed to verify saved config: {verify_error}")
+
+        logger.info("Config saved successfully")
         return True
     except Exception as e:
-        print(f"Error saving config: {e}")
+        logger.error(f"Error saving config: {e}", exc_info=True)
         return False
 
 
@@ -127,10 +183,14 @@ def add_wifi():
         ssid = data.get('ssid', '').strip()
         password = data.get('password', '').strip()
 
+        logger.info(f"API request to add WiFi network: {ssid}")
+
         if not ssid:
+            logger.warning("WiFi add failed: SSID is required")
             return jsonify({'success': False, 'error': 'SSID is required'}), 400
 
         if not password:
+            logger.warning("WiFi add failed: Password is required")
             return jsonify({'success': False, 'error': 'Password is required'}), 400
 
         config = load_config()
@@ -283,21 +343,33 @@ def update_delay():
         data = request.get_json()
         delay_minutes = data.get('delay_minutes')
 
+        logger.info(f"API request to update delay: {delay_minutes}")
+
         if delay_minutes is None:
+            logger.warning("Delay update failed: delay_minutes is required")
             return jsonify({'success': False, 'error': 'delay_minutes is required'}), 400
 
         try:
             delay_minutes = int(delay_minutes)
             if delay_minutes < 0 or delay_minutes > 120:
+                logger.warning(f"Delay update failed: Invalid value {delay_minutes}")
                 return jsonify({'success': False, 'error': 'Delay must be between 0 and 120 minutes'}), 400
         except ValueError:
+            logger.warning(f"Delay update failed: Invalid number format {delay_minutes}")
             return jsonify({'success': False, 'error': 'Delay must be a valid number'}), 400
 
         config = load_config()
+        old_delay = config.get('delay_minutes', 10)
         config['delay_minutes'] = delay_minutes
-        save_config(config)
+
+        if save_config(config):
+            logger.info(f"Delay updated successfully from {old_delay} to {delay_minutes}")
+        else:
+            logger.error("Failed to save config after delay update")
+            return jsonify({'success': False, 'error': 'Failed to save configuration'}), 500
 
         # Restart the train display service
+        logger.info("Triggering train display restart")
         restart_train_display_async()
 
         return jsonify({
@@ -306,7 +378,7 @@ def update_delay():
         })
 
     except Exception as e:
-        print(f"Error updating delay: {e}")
+        logger.error(f"Error updating delay: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
