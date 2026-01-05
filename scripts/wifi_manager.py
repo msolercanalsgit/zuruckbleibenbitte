@@ -78,8 +78,9 @@ def load_config():
                 logger.info(f"Config loaded. WiFi networks: {len(config.get('wifi_networks', []))}")
                 return config
         else:
-            # Create default config if it doesn't exist
-            logger.warning(f"Config file does not exist, creating default: {CONFIG_FILE}")
+            # Return default config if it doesn't exist (but don't save it yet)
+            # This allows the file to be created by the user via web interface
+            logger.warning(f"Config file does not exist, returning default config (not saving yet): {CONFIG_FILE}")
             default_config = {
                 "wifi_networks": [],
                 "train_station": {
@@ -92,7 +93,6 @@ def load_config():
                 },
                 "delay_minutes": 10
             }
-            save_config(default_config)
             return default_config
     except Exception as e:
         logger.error(f"Error loading config: {e}", exc_info=True)
@@ -346,6 +346,7 @@ def update_network_status(ssid, success, error_msg=None):
             return
 
         networks = config.get('wifi_networks', [])
+        network_found = False
         for network in networks:
             if network.get('ssid') == ssid:
                 network['last_attempt'] = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -354,8 +355,14 @@ def update_network_status(ssid, success, error_msg=None):
                     network['last_error'] = error_msg
                 elif 'last_error' in network:
                     del network['last_error']
+                network_found = True
                 break
-        save_config(config)
+
+        # Only save if we actually found and updated the network
+        if network_found:
+            save_config(config)
+        else:
+            logger.warning(f"Network {ssid} not found in config, skipping status update")
     except Exception as e:
         logger.error(f"Failed to update network status: {e}")
 
