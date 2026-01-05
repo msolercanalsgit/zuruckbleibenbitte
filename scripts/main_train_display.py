@@ -106,12 +106,32 @@ while True:
         delay_minutes = config.get('delay_minutes', 10)
         transport_type = config.get('transport_type', 'U')  # Default to U-Bahn
         station_id = config.get('train_station', {}).get('id', '900120004')
-        
-        # Update URL if station changed
-        current_url = 'https://v6.vbb.transport.rest/stops/' + station_id + '/departures?duration=60&duration=60'
+
+        # Build URL with transport type filters
+        # Map transport type codes to API parameter names
+        transport_params = {
+            'S': 'suburban',
+            'U': 'subway',
+            'T': 'tram',
+            'B': 'bus',
+            'F': 'ferry',
+            'E': 'express',
+            'R': 'regional'
+        }
+
+        # Build query string with only selected transport type enabled
+        filter_params = []
+        for code, param_name in transport_params.items():
+            # Enable only the configured transport type, disable others
+            filter_params.append(f"{param_name}={str(code == transport_type).lower()}")
+
+        filter_string = '&'.join(filter_params)
+        current_url = f'https://v6.vbb.transport.rest/stops/{station_id}/departures?duration=60&{filter_string}'
+
         if current_url != url:
             url = current_url
             logger.info(f"Station changed to: {config.get('train_station', {}).get('name', 'Unknown')} (ID: {station_id})")
+            logger.info(f"Transport type filter: {transport_type} ({transport_params.get(transport_type, 'unknown')})")
 
         # Log when delay changes
         if delay_minutes != last_delay:
@@ -124,10 +144,9 @@ while True:
         data = data[data.Date.notnull()].reset_index()
         tz_info = data['Date'][0].tzinfo
 
-        # Filter by configured transport type
+        # Filter by delay (API already filtered by transport type)
         future_departures = data[
-            (data['Date'] > datetime.now(tz_info) + timedelta(minutes = delay_minutes))
-            & (data['line.productName'] == transport_type)].reset_index()
+            data['Date'] > datetime.now(tz_info) + timedelta(minutes = delay_minutes)].reset_index()
         future_departures = future_departures[['Date','direction','line.name','line.productName']]
 
         # Check if we have enough departures
@@ -179,6 +198,7 @@ while True:
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
     except Exception as error:
         logger.error(f"Error in main loop: {error}", exc_info=True)
+        offscreen_canvas.Clear()  # Clear canvas before drawing error message
         texto_conectando = 'Connecting to Wifi.Wait 60 sec.'
         connectando_imprimir= graphics.DrawText(offscreen_canvas, font_small, 3, 14, textColor, texto_conectando)
 

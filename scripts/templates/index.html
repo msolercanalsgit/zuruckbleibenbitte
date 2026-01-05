@@ -537,14 +537,19 @@
                             ✓ Found ${data.stations.length} station${data.stations.length > 1 ? 's' : ''}. Click on a station to change display.
                         </p>
                         <div style="max-height: 300px; overflow-y: auto; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px;">
-                            ${data.stations.map(station => {
+                            ${data.stations.map((station, index) => {
                                 const availableTypes = getAvailableTransportTypes(station.products || {});
                                 const typeLabels = availableTypes.map(t => getTransportTypeName(t)).join(', ');
+                                const dataId = 'station-' + index;
                                 return `
                                 <div
                                     class="station-item"
+                                    id="${dataId}"
+                                    data-station-id="${escapeHtml(station.id)}"
+                                    data-station-name="${escapeHtml(station.name)}"
+                                    data-available-types="${availableTypes.join(',')}"
                                     style="padding: 12px; margin-bottom: 8px; background: #fff; border: 2px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                    onclick="showStationSelection('${escapeHtml(station.id)}', '${escapeHtml(station.name)}', ${JSON.stringify(availableTypes)})"
+                                    onclick="handleStationClick('${dataId}')"
                                     onmouseover="this.style.background='#f0fdf4'; this.style.borderColor='#059669';"
                                     onmouseout="this.style.background='#fff'; this.style.borderColor='#e5e7eb';"
                                 >
@@ -569,6 +574,18 @@
             }
         }
 
+        function handleStationClick(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const stationId = element.getAttribute('data-station-id');
+            const stationName = element.getAttribute('data-station-name');
+            const availableTypesStr = element.getAttribute('data-available-types');
+            const availableTypes = availableTypesStr ? availableTypesStr.split(',').filter(t => t) : [];
+
+            showStationSelection(stationId, stationName, availableTypes);
+        }
+
         function showStationSelection(stationId, stationName, availableTypes) {
             const statusDiv = document.getElementById('station-status-message');
             if (!statusDiv) return;
@@ -577,31 +594,80 @@
             statusDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
             // Always show transport type selection dialog (filter available types if provided)
-            const allTransportTypes = ['S', 'U', 'T', 'B', 'F', 'E', 'R'];
-            const typesToShow = availableTypes.length > 0 ? availableTypes : allTransportTypes;
+            const allTransportTypes = [
+                { code: 'S', name: 'S-Bahn (Suburban)' },
+                { code: 'U', name: 'U-Bahn (Subway)' },
+                { code: 'T', name: 'Tram' },
+                { code: 'B', name: 'Bus' },
+                { code: 'F', name: 'Ferry' },
+                { code: 'E', name: 'Express (IC/ICE)' },
+                { code: 'R', name: 'Regional (RB/RE)' }
+            ];
 
-            const transportOptions = typesToShow.map(type =>
-                `<option value="${type}">${getTransportTypeName(type)}</option>`
-            ).join('');
+            const typesToShow = availableTypes.length > 0
+                ? allTransportTypes.filter(t => availableTypes.includes(t.code))
+                : allTransportTypes;
+
+            const transportCheckboxes = typesToShow.map(type => `
+                <label style="display: flex; align-items: center; padding: 10px; background: white; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s;"
+                    onmouseover="this.style.background='#f9fafb'"
+                    onmouseout="this.style.background='white'">
+                    <input type="checkbox"
+                        class="transport-type-checkbox"
+                        value="${type.code}"
+                        ${availableTypes.includes(type.code) ? 'checked' : ''}
+                        style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                    <span style="font-size: 14px; color: #1f2937;">${type.name}</span>
+                </label>
+            `).join('');
 
             statusDiv.innerHTML = `
                 <div style="padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-top: 15px;">
                     <div style="font-size: 18px; font-weight: 600; color: #92400e; margin-bottom: 10px;">
-                        📍 Change station to: ${escapeHtml(stationName)}
+                        📍 Selected Station: ${escapeHtml(stationName)}
                     </div>
                     <p style="font-size: 14px; color: #78350f; margin-bottom: 15px;">
-                        Select which transport type you want to display departures for:
+                        Select which transport types you want to display (check all that apply):
                     </p>
-                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 10px; color: #059669; font-weight: 500;">✓ Available at this station: ${typesToShow.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
-                    <select id="station-transport-select" style="width: 100%; padding: 12px; border: 2px solid #f59e0b; border-radius: 6px; margin-bottom: 15px; font-size: 14px; background: white;">
-                        ${transportOptions}
-                    </select>
+                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 15px; color: #059669; font-weight: 500;">✓ Available at this station: ${availableTypes.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
+                    <div id="transport-type-options" style="margin-bottom: 15px;">
+                        ${transportCheckboxes}
+                    </div>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="selectStation('${escapeHtml(stationId)}', '${escapeHtml(stationName)}', document.getElementById('station-transport-select').value)" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">✓ Change to This Station</button>
+                        <button onclick="saveStationConfiguration('${escapeHtml(stationId)}', '${escapeHtml(stationName)}')" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">💾 Save Configuration</button>
                         <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 12px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">Cancel</button>
                     </div>
                 </div>
             `;
+        }
+
+        function saveStationConfiguration(stationId, stationName) {
+            const checkboxes = document.querySelectorAll('.transport-type-checkbox:checked');
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedTypes.length === 0) {
+                const statusDiv = document.getElementById('station-status-message');
+                if (statusDiv) {
+                    const existingContent = statusDiv.innerHTML;
+                    statusDiv.innerHTML = `
+                        <div style="padding: 15px; background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 14px; font-weight: 600; color: #991b1b;">
+                                ⚠ Please select at least one transport type
+                            </div>
+                        </div>
+                    ` + existingContent;
+
+                    setTimeout(() => {
+                        const errorDiv = statusDiv.querySelector('div');
+                        if (errorDiv) errorDiv.remove();
+                    }, 3000);
+                }
+                return;
+            }
+
+            // For now, use the first selected type (we'll update backend to support multiple later)
+            const transportType = selectedTypes[0];
+            selectStation(stationId, stationName, transportType);
         }
 
         async function selectStation(stationId, stationName, transportType = null) {
@@ -635,16 +701,20 @@
 
                 if (data.success) {
                     if (statusDiv) {
+                        const transportTypeName = getTransportTypeName(transportType);
                         statusDiv.innerHTML = `
                             <div style="padding: 20px; background: #d1fae5; border: 2px solid #059669; border-radius: 8px; margin-top: 15px;">
                                 <div style="font-size: 18px; font-weight: 600; color: #065f46; margin-bottom: 10px;">
-                                    ✓ Station Changed Successfully!
+                                    ✓ Configuration Saved Successfully!
                                 </div>
+                                <p style="font-size: 14px; color: #047857; margin-bottom: 5px;">
+                                    <strong>Station:</strong> ${escapeHtml(stationName)}
+                                </p>
                                 <p style="font-size: 14px; color: #047857; margin-bottom: 10px;">
-                                    Your display is now showing departures from: <strong>${escapeHtml(stationName)}</strong>
+                                    <strong>Transport Type:</strong> ${transportTypeName}
                                 </p>
                                 <p style="font-size: 12px; color: #047857;">
-                                    The physical display will update within 60 seconds.
+                                    The physical display will update in the next loop (within 60 seconds).
                                 </p>
                             </div>
                         `;
