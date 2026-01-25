@@ -98,6 +98,11 @@ textColor = graphics.Color(255, 1, 200) #color of the text
 
 last_delay = initial_delay  # Track last known delay value
 
+# Display cycle tracking
+cycle_start_time = time.time()
+DISPLAY_CYCLE_DURATION = 120  # 2 minutes total
+STATION_NAME_DURATION = 5  # Show station name for 5 seconds
+
 while True:
     #Basic info
     try:
@@ -106,6 +111,26 @@ while True:
         delay_minutes = config.get('delay_minutes', 10)
         transport_type = config.get('transport_type', 'U')  # Default to U-Bahn
         station_id = config.get('train_station', {}).get('id', '900120004')
+        station_name = config.get('train_station', {}).get('name', 'Unknown Station')
+
+        # Check if we should show station name
+        elapsed_time = time.time() - cycle_start_time
+        time_in_cycle = elapsed_time % DISPLAY_CYCLE_DURATION
+        should_show_station_name = time_in_cycle < STATION_NAME_DURATION
+
+        if should_show_station_name:
+            # Display station name centered
+            offscreen_canvas.Clear()
+
+            # Calculate text width for centering (approximate: 6 pixels per character for font_normal)
+            text_width_estimate = len(station_name) * 6  # Rough estimate
+            x_position = max(3, (options.cols - text_width_estimate) // 2)
+            y_position = 16  # Middle of the 32-pixel height
+
+            graphics.DrawText(offscreen_canvas, font_normal, x_position, y_position, textColor, station_name)
+            offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
+            time.sleep(1)  # Short sleep when showing station name
+            continue  # Skip the rest and loop again
 
         # Build URL with transport type filters
         # Map transport type codes to API parameter names
@@ -160,8 +185,8 @@ while True:
         #building text:
         departure_time_0 = future_departures['Date'][0]
         departure_time_1 = future_departures['Date'][1] if len(future_departures) > 1 else future_departures['Date'][0]
-        station_0 = str(future_departures['direction'][0]) + '         '
-        station_1 = str(future_departures['direction'][1]) + '         ' if len(future_departures) > 1 else station_0
+        station_0 = str(future_departures['direction'][0])[0:16] + '         '
+        station_1 = str(future_departures['direction'][1])[0:16] + '         ' if len(future_departures) > 1 else station_0
 
         line_0 = future_departures['line.name'][0]
         line_1 = future_departures['line.name'][1] if len(future_departures) > 1 else line_0
@@ -196,6 +221,7 @@ while True:
         min_1 = graphics.DrawText(offscreen_canvas, font_small, 140, 29, textColor, in_x_min_text_1)
 
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
+        time.sleep(30)  # Sleep for 30 seconds when showing train departures
     except Exception as error:
         logger.error(f"Error in main loop: {error}", exc_info=True)
         offscreen_canvas.Clear()  # Clear canvas before drawing error message
@@ -203,6 +229,4 @@ while True:
         connectando_imprimir= graphics.DrawText(offscreen_canvas, font_small, 3, 14, textColor, texto_conectando)
 
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
-
-    #print(pos_test)
-    time.sleep(60)
+        time.sleep(60)
