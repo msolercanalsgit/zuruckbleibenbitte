@@ -163,6 +163,77 @@ def get_local_ip():
         return None
 
 
+def get_available_networks(max_retries=3, retry_delay=5):
+    """Scan and return a list of available WiFi network SSIDs with retry logic.
+
+    Args:
+        max_retries: Number of scan attempts if no networks found
+        retry_delay: Seconds to wait between retries
+
+    Returns:
+        Set of available SSIDs (may be empty if scan fails or no networks found)
+    """
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"Scanning for available WiFi networks (attempt {attempt}/{max_retries})...")
+
+            # Trigger a fresh scan
+            subprocess.run(
+                ['nmcli', 'dev', 'wifi', 'rescan'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            # Wait longer on first attempt after boot for hardware to be ready
+            wait_time = 5 if attempt == 1 else 3
+            time.sleep(wait_time)
+
+            # Get list of available networks
+            result = subprocess.run(
+                ['nmcli', '-t', '-f', 'SSID', 'dev', 'wifi', 'list'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                # Parse SSIDs, filter out empty strings and duplicates
+                available = set()
+                for line in result.stdout.strip().split('\n'):
+                    ssid = line.strip()
+                    if ssid:  # Skip empty SSIDs (hidden networks)
+                        available.add(ssid)
+
+                if available:
+                    print(f"Scan successful: found {len(available)} network(s)")
+                    return available
+                else:
+                    print(f"Scan returned no networks (attempt {attempt}/{max_retries})")
+                    if attempt < max_retries:
+                        print(f"WiFi hardware may still be initializing, waiting {retry_delay}s before retry...")
+                        time.sleep(retry_delay)
+            else:
+                print(f"Scan command failed (attempt {attempt}/{max_retries}): {result.stderr}")
+                if attempt < max_retries:
+                    print(f"Waiting {retry_delay}s before retry...")
+                    time.sleep(retry_delay)
+
+        except subprocess.TimeoutExpired:
+            print(f"Scan timeout (attempt {attempt}/{max_retries}) - WiFi hardware may not be ready")
+            if attempt < max_retries:
+                print(f"Waiting {retry_delay}s before retry...")
+                time.sleep(retry_delay)
+        except Exception as e:
+            print(f"Error scanning for networks (attempt {attempt}/{max_retries}): {e}")
+            if attempt < max_retries:
+                print(f"Waiting {retry_delay}s before retry...")
+                time.sleep(retry_delay)
+
+    print("All scan attempts failed or returned no networks")
+    return set()
+
+
 def is_wifi_connected():
     """Check if WiFi is connected using nmcli."""
     try:
@@ -400,7 +471,33 @@ def try_saved_networks(config, max_retries=2):
                     print(f"Connected to {current_ssid} but no internet, will retry...")
                     break
 
+    # Scan for available networks
+    available_networks = get_available_networks()
+    if available_networks:
+        print(f"Found {len(available_networks)} available network(s): {', '.join(sorted(available_networks))}")
+    else:
+        print("No networks found in scan, will try all saved networks anyway")
+
+    # Filter saved networks to only those that are available (or try all if scan failed)
+    networks_to_try = []
     for network in networks:
+        ssid = network.get('ssid')
+        if not ssid:
+            continue
+        # If scan worked, only try available networks; otherwise try all
+        if not available_networks or ssid in available_networks:
+            networks_to_try.append(network)
+        else:
+            print(f"Skipping {ssid} - not in range")
+
+    if not networks_to_try:
+        print("No saved networks are currently available")
+        return False
+
+    print(f"Will try {len(networks_to_try)} available network(s)")
+    display_message(f"Trying {len(networks_to_try)} network(s)...", 1)
+
+    for network in networks_to_try:
         ssid = network.get('ssid')
         password = network.get('password')
         password_updated = network.get('password_updated', False)

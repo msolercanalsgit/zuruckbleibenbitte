@@ -129,7 +129,7 @@ while True:
 
             graphics.DrawText(offscreen_canvas, font_normal, x_position, y_position, textColor, station_name)
             offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
-            time.sleep(1)  # Short sleep when showing station name
+            time.sleep(5)  # Short sleep when showing station name
             continue  # Skip the rest and loop again
 
         # Build URL with transport type filters
