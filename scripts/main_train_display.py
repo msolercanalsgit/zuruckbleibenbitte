@@ -98,10 +98,8 @@ textColor = graphics.Color(255, 1, 200) #color of the text
 
 last_delay = initial_delay  # Track last known delay value
 
-# Display cycle tracking
-cycle_start_time = time.time()
-DISPLAY_CYCLE_DURATION = 120  # 2 minutes total
-STATION_NAME_DURATION = 5  # Show station name for 5 seconds
+# Display cycle tracking - show station name every 5 rounds
+loop_counter = 0
 
 while True:
     #Basic info
@@ -113,10 +111,12 @@ while True:
         station_id = config.get('train_station', {}).get('id', '900120004')
         station_name = config.get('train_station', {}).get('name', 'Unknown Station')
 
-        # Check if we should show station name
-        elapsed_time = time.time() - cycle_start_time
-        time_in_cycle = elapsed_time % DISPLAY_CYCLE_DURATION
-        should_show_station_name = time_in_cycle < STATION_NAME_DURATION
+        # Check if we should show station name (every 5 rounds)
+        loop_counter += 1
+        should_show_station_name = (loop_counter % 5 == 0)
+
+        if should_show_station_name:
+            loop_counter = 0  # Reset counter after showing station name
 
         if should_show_station_name:
             # Display station name centered
