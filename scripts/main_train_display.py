@@ -199,8 +199,15 @@ while True:
 
         res = requests.get(url= url)
         data = pd.json_normalize(res.json(), record_path =['departures'])
-        data['Date'] = pd.to_datetime(data['when'], format = '%Y-%m-%dT%H:%M:%S%z')
+
+        # Use 'when' if available (actual/predicted time), otherwise fall back to 'plannedWhen'
+        # Trams and buses often have 'when' as null, so we need the fallback
+        data['Date'] = pd.to_datetime(data['when'].fillna(data['plannedWhen']), format = '%Y-%m-%dT%H:%M:%S%z')
         data = data[data.Date.notnull()].reset_index()
+
+        if len(data) == 0:
+            raise ValueError(f"No valid departure times found for {transport_type}")
+
         tz_info = data['Date'][0].tzinfo
 
         # Filter by delay (API already filtered by transport type)
