@@ -238,12 +238,12 @@ def main():
 
         # Load font
         font_normal = graphics.Font()
-        font_path = os.path.join(FONTS_DIR, "bfvlowermargen.bdf")
-        
+        font_path = os.path.join(FONTS_DIR, "zuruckbleibenbitte_long.bdf")
+
         if not os.path.exists(font_path):
             print(f"ERROR: Font not found at {font_path}")
             return
-            
+
         font_normal.LoadFont(font_path)
         text_color = graphics.Color(255, 1, 200)
 
