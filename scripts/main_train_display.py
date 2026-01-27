@@ -293,6 +293,7 @@ while True:
         if letter_0:
             # Draw letter if it exists
             x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 14, textColor, letter_0)
+            x_pos += 2  # Add small gap between letter and number
         if number_0:
             # Draw number
             x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 14, textColor, number_0)
@@ -308,6 +309,7 @@ while True:
         if letter_1:
             # Draw letter if it exists
             x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 29, textColor, letter_1)
+            x_pos += 2  # Add small gap between letter and number
         if number_1:
             # Draw number
             x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 29, textColor, number_1)
