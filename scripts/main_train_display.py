@@ -25,6 +25,40 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def parse_line_name(line_name):
+    """Parse a line name into letter prefix and number.
+
+    Handles various formats:
+    - U5 -> ('U', '5')
+    - S7 -> ('S', '7')
+    - M10 -> ('M', '10')
+    - 100 -> ('', '100')
+    - 1 -> ('', '1')
+    - N42 -> ('N', '42')
+
+    Returns:
+        tuple: (letter_part, number_part) - either can be empty string
+    """
+    line_str = str(line_name)
+
+    # Find where digits start
+    first_digit_pos = -1
+    for i, char in enumerate(line_str):
+        if char.isdigit():
+            first_digit_pos = i
+            break
+
+    if first_digit_pos == -1:
+        # No digits found, it's all letters (rare case)
+        return (line_str, '')
+    elif first_digit_pos == 0:
+        # Starts with digit, no letter prefix
+        return ('', line_str)
+    else:
+        # Has letter prefix
+        return (line_str[:first_digit_pos], line_str[first_digit_pos:])
+
+
 def load_config():
     """Load configuration from JSON file."""
     try:
@@ -203,21 +237,40 @@ while True:
         in_x_min_text_0 = 'in ' + str(minutes_0) + ' min'
         in_x_min_text_1 = 'in ' + str(minutes_1) + ' min'
 
-        offscreen_canvas.Clear() #probably to take out so it does not refresh (taking out also the if)
-    
-        line_letter_0 = graphics.DrawText(offscreen_canvas, font_big, 3, 14, textColor, str(line_0)[0:1])
-        line_number_0 = graphics.DrawText(offscreen_canvas, font_big, 12, 14, textColor, str(line_0)[1:2])
+        # Parse line names to handle different formats (U5, M10, 100, etc.)
+        letter_0, number_0 = parse_line_name(line_0)
+        letter_1, number_1 = parse_line_name(line_1)
 
-        estacion_0 = graphics.DrawText(offscreen_canvas, font_normal, 27, 14, textColor, station_0[0:20])
+        offscreen_canvas.Clear() #probably to take out so it does not refresh (taking out also the if)
+
+        # Draw first line - handle letter and number separately
+        x_pos = 3
+        if letter_0:
+            # Draw letter if it exists
+            x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 14, textColor, letter_0)
+        if number_0:
+            # Draw number
+            x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 14, textColor, number_0)
+
+        # Draw destination for first line (adjust spacing based on line name length)
+        station_x_0 = max(27, x_pos + 3)  # At least 27, or after line name + small gap
+        estacion_0 = graphics.DrawText(offscreen_canvas, font_normal, station_x_0, 14, textColor, station_0[0:20])
 
         min_0 = graphics.DrawText(offscreen_canvas, font_small, 140, 14, textColor, in_x_min_text_0)
 
+        # Draw second line - handle letter and number separately
+        x_pos = 3
+        if letter_1:
+            # Draw letter if it exists
+            x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 29, textColor, letter_1)
+        if number_1:
+            # Draw number
+            x_pos += graphics.DrawText(offscreen_canvas, font_big, x_pos, 29, textColor, number_1)
 
-        line_letter_1 = graphics.DrawText(offscreen_canvas, font_big, 3, 29, textColor, str(line_1)[0:1])
-        line_number_1 = graphics.DrawText(offscreen_canvas, font_big, 12, 29, textColor, str(line_1)[1:2])
-    
-        estacion_1 = graphics.DrawText(offscreen_canvas, font_normal, 27, 29, textColor, station_1[0:20])
-    
+        # Draw destination for second line (adjust spacing based on line name length)
+        station_x_1 = max(27, x_pos + 3)  # At least 27, or after line name + small gap
+        estacion_1 = graphics.DrawText(offscreen_canvas, font_normal, station_x_1, 29, textColor, station_1[0:20])
+
         min_1 = graphics.DrawText(offscreen_canvas, font_small, 140, 29, textColor, in_x_min_text_1)
 
         offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
