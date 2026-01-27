@@ -414,20 +414,24 @@ def update_station():
         if not station_id:
             return jsonify({'success': False, 'error': 'Station ID is required'}), 400
 
-        # Validate transport type if provided
+        # Validate transport type(s) if provided (can be comma-separated like "U,T,B")
         valid_transport_types = ['S', 'U', 'T', 'B', 'F', 'E', 'R']
-        if transport_type and transport_type not in valid_transport_types:
-            return jsonify({'success': False, 'error': f'Invalid transport type. Must be one of: {", ".join(valid_transport_types)}'}), 400
+        if transport_type:
+            # Split by comma to support multiple types
+            transport_types_list = [t.strip() for t in transport_type.split(',')]
+            for tt in transport_types_list:
+                if tt not in valid_transport_types:
+                    return jsonify({'success': False, 'error': f'Invalid transport type "{tt}". Must be one of: {", ".join(valid_transport_types)}'}), 400
 
-        logger.info(f"Updating station to: {station_name} (ID: {station_id})" + (f", transport type: {transport_type}" if transport_type else ""))
+        logger.info(f"Updating station to: {station_name} (ID: {station_id})" + (f", transport type(s): {transport_type}" if transport_type else ""))
 
         config = load_config()
         config['train_station'] = {
             'id': station_id,
             'name': station_name
         }
-        
-        # Update transport type if provided
+
+        # Update transport type(s) if provided (stores as comma-separated string)
         if transport_type:
             config['transport_type'] = transport_type
         
@@ -443,7 +447,10 @@ def update_station():
         message = f'Updated station to: {station_name}'
         if transport_type:
             transport_names = {'S': 'S-Bahn', 'U': 'U-Bahn', 'T': 'Tram', 'B': 'Bus', 'F': 'Ferry', 'E': 'Express', 'R': 'Regional'}
-            message += f' ({transport_names.get(transport_type, transport_type)})'
+            # Convert comma-separated types to readable names
+            types_list = [t.strip() for t in transport_type.split(',')]
+            readable_types = [transport_names.get(t, t) for t in types_list]
+            message += f' ({", ".join(readable_types)})'
         message += '. Restarting display...'
 
         return jsonify({

@@ -141,9 +141,17 @@ while True:
         # Reload config to get latest settings
         config = load_config()
         delay_minutes = config.get('delay_minutes', 10)
-        transport_type = config.get('transport_type', 'U')  # Default to U-Bahn
+        transport_type_config = config.get('transport_type', 'U')  # Default to U-Bahn
         station_id = config.get('train_station', {}).get('id', '900120004')
         station_name = config.get('train_station', {}).get('name', 'Unknown Station')
+
+        # Support multiple transport types (comma-separated string like "U,T,B")
+        if isinstance(transport_type_config, str) and ',' in transport_type_config:
+            selected_transport_types = [t.strip() for t in transport_type_config.split(',')]
+        elif isinstance(transport_type_config, str):
+            selected_transport_types = [transport_type_config]
+        else:
+            selected_transport_types = ['U']  # Default fallback
 
         # Check if we should show station name (every 5 rounds)
         loop_counter += 1
@@ -206,11 +214,12 @@ while True:
             'R': 'regional'
         }
 
-        # Build query string with only selected transport type enabled
+        # Build query string with selected transport types enabled
         filter_params = []
         for code, param_name in transport_params.items():
-            # Enable only the configured transport type, disable others
-            filter_params.append(f"{param_name}={str(code == transport_type).lower()}")
+            # Enable if code is in selected_transport_types
+            is_enabled = code in selected_transport_types
+            filter_params.append(f"{param_name}={str(is_enabled).lower()}")
 
         filter_string = '&'.join(filter_params)
         current_url = f'https://v6.vbb.transport.rest/stops/{station_id}/departures?duration=60&{filter_string}'
@@ -218,7 +227,7 @@ while True:
         if current_url != url:
             url = current_url
             logger.info(f"Station changed to: {config.get('train_station', {}).get('name', 'Unknown')} (ID: {station_id})")
-            logger.info(f"Transport type filter: {transport_type} ({transport_params.get(transport_type, 'unknown')})")
+            logger.info(f"Transport type filter: {', '.join(selected_transport_types)}")
 
         # Log when delay changes
         if delay_minutes != last_delay:
@@ -234,7 +243,7 @@ while True:
         data = data[data.Date.notnull()].reset_index()
 
         if len(data) == 0:
-            raise ValueError(f"No valid departure times found for {transport_type}")
+            raise ValueError(f"No valid departure times found for {', '.join(selected_transport_types)}")
 
         tz_info = data['Date'][0].tzinfo
 
@@ -244,11 +253,12 @@ while True:
         future_departures = future_departures[['Date','direction','line.name','line.productName']]
 
         # Check if we have enough departures
+        transport_types_str = ', '.join(selected_transport_types)
         if len(future_departures) < 2:
-            logger.warning(f"Not enough {transport_type} departures found (found {len(future_departures)})")
+            logger.warning(f"Not enough {transport_types_str} departures found (found {len(future_departures)})")
             # Fallback: show whatever is available or show error message
             if len(future_departures) == 0:
-                raise ValueError(f"No {transport_type} departures found")
+                raise ValueError(f"No {transport_types_str} departures found")
 
         #Data scraped
         #building text:
