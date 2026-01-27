@@ -595,7 +595,7 @@ def main():
 
         # Load font
         font = graphics.Font()
-        font_path = os.path.join(FONTS_DIR, "bfvlowermargen.bdf")
+        font_path = os.path.join(FONTS_DIR, "zuruckbleibenbitte_long.bdf")
 
         if not os.path.exists(font_path):
             print(f"WARNING: Font not found at {font_path}")

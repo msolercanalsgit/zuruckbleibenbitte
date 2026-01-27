@@ -120,9 +120,9 @@ font_small = graphics.Font()
 
 FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 
-font_normal.LoadFont(os.path.join(FONTS_DIR, "bfvlowermargen.bdf"))
-font_big.LoadFont(os.path.join(FONTS_DIR, "FixedBold-13.bdf"))
-font_small.LoadFont(os.path.join(FONTS_DIR, "bfvlowermargen.bdf"))
+font_normal.LoadFont(os.path.join(FONTS_DIR, "zuruckbleibenbitte_long.bdf"))
+font_big.LoadFont(os.path.join(FONTS_DIR, "zuruckbleibenbitte_big.bdf"))
+font_small.LoadFont(os.path.join(FONTS_DIR, "zuruckbleibenbitte_long.bdf"))
 
 # real color =     textColor = graphics.Color(255, 1, 200) #color of the text
 
@@ -153,15 +153,43 @@ while True:
             loop_counter = 0  # Reset counter after showing station name
 
         if should_show_station_name:
-            # Display station name centered
+            # Display station name centered (split to 2 lines if too long)
             offscreen_canvas.Clear()
 
-            # Calculate text width for centering (approximate: 6 pixels per character for font_normal)
-            text_width_estimate = len(station_name) * 6  # Rough estimate
-            x_position = max(3, (options.cols - text_width_estimate) // 2)
-            y_position = 16  # Middle of the 32-pixel height
+            # Character limit per line (roughly 30 chars at 6 pixels each for 192 pixel width)
+            max_chars_per_line = 30
 
-            graphics.DrawText(offscreen_canvas, font_normal, x_position, y_position, textColor, station_name)
+            if len(station_name) <= max_chars_per_line:
+                # Short name - single line, vertically centered
+                text_width_estimate = len(station_name) * 6
+                x_position = max(3, (options.cols - text_width_estimate) // 2)
+                y_position = 16  # Middle of the 32-pixel height
+                graphics.DrawText(offscreen_canvas, font_normal, x_position, y_position, textColor, station_name)
+            else:
+                # Long name - split into two lines
+                # Try to split at a good point (space, slash, or parenthesis)
+                split_point = max_chars_per_line
+
+                # Look for a good split point (space, slash, or paren) near the middle
+                for delimiter in [' ', '/', '(']:
+                    pos = station_name.rfind(delimiter, 0, max_chars_per_line + 5)
+                    if pos > max_chars_per_line // 2:  # Only if it's reasonably centered
+                        split_point = pos
+                        break
+
+                line1 = station_name[:split_point].strip()
+                line2 = station_name[split_point:].strip()
+
+                # Draw line 1 (top half)
+                text_width_1 = len(line1) * 6
+                x_pos_1 = max(3, (options.cols - text_width_1) // 2)
+                graphics.DrawText(offscreen_canvas, font_normal, x_pos_1, 12, textColor, line1)
+
+                # Draw line 2 (bottom half)
+                text_width_2 = len(line2) * 6
+                x_pos_2 = max(3, (options.cols - text_width_2) // 2)
+                graphics.DrawText(offscreen_canvas, font_normal, x_pos_2, 24, textColor, line2)
+
             offscreen_canvas = matrix.SwapOnVSync(offscreen_canvas)
             time.sleep(5)  # Short sleep when showing station name
             continue  # Skip the rest and loop again

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Train Display Setup</title>
+    <title>Train Display</title>
     <style>
         * {
             margin: 0;
@@ -12,308 +12,382 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f7fafc;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #000;
+            color: #fff;
             min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 40px 20px;
+        }
+
+        .mono {
+            font-family: 'Courier New', Courier, monospace;
         }
 
         .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 100%;
-            overflow: hidden;
+            max-width: 800px;
+            margin: 0 auto;
         }
 
-        .header {
-            background: #2d3748;
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
+        h1 {
             font-size: 24px;
-            margin-bottom: 8px;
+            font-weight: normal;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .content {
-            padding: 30px;
+        h2 {
+            font-size: 16px;
+            font-weight: normal;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f9fafb;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            margin-bottom: 60px;
         }
 
-        .section:last-child {
-            margin-bottom: 0;
+        .current-config {
+            margin-bottom: 80px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid #fff;
         }
 
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #d1d5db;
+        .config-row {
+            display: flex;
+            margin-bottom: 10px;
+            font-size: 14px;
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        .config-label {
+            width: 120px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .config-value {
+            font-family: 'Courier New', Courier, monospace;
         }
 
         label {
             display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: #555;
-            margin-bottom: 6px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
         }
 
         input[type="text"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="number"] {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            padding: 15px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #fff;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
         }
 
         input[type="text"]:focus,
-        input[type="password"]:focus {
+        input[type="password"]:focus,
+        input[type="number"]:focus {
             outline: none;
-            border-color: #4a5568;
+            border-bottom: 2px solid #fff;
         }
 
-        .password-wrapper {
-            position: relative;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #4a5568;
-            cursor: pointer;
-            font-size: 12px;
-            padding: 4px 8px;
-            width: auto;
-        }
-
-        .toggle-password:hover {
-            color: #2d3748;
-            transform: translateY(-50%);
-            box-shadow: none;
+        input::placeholder {
+            color: #666;
         }
 
         button {
-            width: 100%;
-            padding: 14px;
-            background: #4a5568;
-            color: white;
+            background: #fff;
+            color: #000;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 15px 30px;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             cursor: pointer;
-            transition: background 0.2s;
+            margin-top: 20px;
         }
 
         button:hover {
-            background: #2d3748;
+            background: #ddd;
         }
 
         button:active {
-            transform: translateY(0);
+            background: #bbb;
         }
 
-        .status {
-            padding: 12px;
-            border-radius: 8px;
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+        }
+
+        .search-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .search-row button {
+            margin-top: 0;
+            flex-shrink: 0;
+        }
+
+        .message {
+            padding: 15px 0;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            border-bottom: 1px solid #fff;
+        }
+
+        .message.error {
+            color: #ff6b6b;
+        }
+
+        .message.success {
+            color: #51cf66;
+        }
+
+        .station-list {
+            margin-top: 20px;
+        }
+
+        .station-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+        }
+
+        .station-item:hover {
+            border-bottom: 1px solid #fff;
+        }
+
+        .station-name {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .station-meta {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .transport-selection {
+            margin-top: 30px;
+            padding: 30px 0;
+            border-top: 1px solid #fff;
+            border-bottom: 1px solid #fff;
+        }
+
+        .transport-option {
+            display: flex;
+            align-items: center;
             margin-bottom: 15px;
+            cursor: pointer;
+        }
+
+        .transport-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .transport-option label {
+            margin: 0;
+            cursor: pointer;
             font-size: 14px;
         }
 
-        .status.info {
-            background: #dbeafe;
-            color: #1e40af;
-            border-left: 4px solid #3b82f6;
+        .button-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
         }
 
-        .status.success {
-            background: #e8f5e9;
-            color: #388e3c;
-            border-left: 4px solid #388e3c;
+        .button-group button {
+            flex: 1;
         }
 
-        .status.error {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 4px solid #c62828;
+        .button-secondary {
+            background: transparent;
+            color: #fff;
+            border: 1px solid #fff;
         }
 
-        .network-list {
-            margin-top: 15px;
+        .button-secondary:hover {
+            background: #fff;
+            color: #000;
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: #666;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .network-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            margin-bottom: 8px;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
         }
 
         .network-name {
-            font-weight: 500;
-            color: #333;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
         }
 
         .remove-btn {
-            padding: 6px 12px;
-            background: #ef5350;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.2s;
+            background: transparent;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 8px 15px;
+            font-size: 10px;
+            margin-top: 0;
         }
 
         .remove-btn:hover {
-            background: #d32f2f;
-        }
-
-        .help-text {
-            font-size: 12px;
-            color: #777;
-            margin-top: 6px;
-        }
-
-        .divider {
-            height: 2px;
-            background: #e5e7eb;
-            margin: 30px 0;
-            border-radius: 1px;
+            background: #fff;
+            color: #000;
         }
 
         #loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 40px 0;
         }
 
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4a5568;
-            border-radius: 50%;
             width: 40px;
             height: 40px;
+            border: 2px solid #333;
+            border-top: 2px solid #fff;
+            border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 20px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .station-item {
-            transition: background 0.2s;
-        }
-
-        .station-item:hover {
-            background: #e0e0e0 !important;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Train Display Setup</h1>
-            <p>Configure your WiFi connection</p>
-        </div>
+        <h1>Train Display</h1>
 
-        <div class="content">
-            <div id="status-message"></div>
+        <div id="main-content">
+            <!-- WiFi Setup Mode (shown when not connected) -->
+            <div id="setup-mode" style="display: none;">
+                <div id="status-message"></div>
 
-            <div class="section">
-                <h2 class="section-title">Add WiFi Network</h2>
-
-                <form id="wifi-form">
-                    <div class="form-group">
-                        <label for="ssid">Network Name (SSID)</label>
-                        <input type="text" id="ssid" name="ssid" placeholder="Enter WiFi name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="password" name="password" placeholder="Enter WiFi password" required style="padding-right: 70px;">
-                            <button type="button" class="toggle-password" onclick="togglePassword()">Show</button>
+                <div class="section">
+                    <h2>Add WiFi Network</h2>
+                    <form id="wifi-form">
+                        <div class="form-group">
+                            <label for="ssid">Network Name</label>
+                            <input type="text" id="ssid" name="ssid" placeholder="enter ssid" required>
                         </div>
-                        <p class="help-text">Your credentials are stored locally on the device</p>
-                    </div>
 
-                    <button type="submit">Connect to WiFi</button>
-                </form>
-            </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" placeholder="enter password" required>
+                            <p class="help-text">credentials stored locally</p>
+                        </div>
 
-            <div class="divider"></div>
+                        <button type="submit">Connect</button>
+                    </form>
+                </div>
 
-            <div class="section">
-                <h2 class="section-title">Saved Networks</h2>
-                <div id="network-list" class="network-list">
-                    <p class="help-text">Loading networks...</p>
+                <div class="section">
+                    <h2>Saved Networks</h2>
+                    <div id="network-list"></div>
+                </div>
+
+                <div id="loading">
+                    <div class="spinner"></div>
+                    <p class="mono">Connecting...</p>
                 </div>
             </div>
 
-            <div id="loading">
-                <div class="spinner"></div>
-                <p>Connecting to WiFi...</p>
+            <!-- Connected Mode (shown when connected via WiFi) -->
+            <div id="connected-mode" style="display: none;">
+                <div class="current-config">
+                    <h2>Current Configuration</h2>
+                    <div class="config-row">
+                        <span class="config-label">Station</span>
+                        <span class="config-value" id="current-station">—</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Transport</span>
+                        <span class="config-value" id="current-transport">—</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">Delay</span>
+                        <span class="config-value" id="current-delay">—</span>
+                    </div>
+                    <div class="config-row">
+                        <span class="config-label">WiFi</span>
+                        <span class="config-value" id="current-wifi">—</span>
+                    </div>
+                </div>
+
+                <div id="connected-status-message"></div>
+
+                <div class="section">
+                    <h2>Departure Delay</h2>
+                    <form id="delay-form">
+                        <div class="form-group">
+                            <label for="delay-minutes">Minutes</label>
+                            <input type="number" id="delay-minutes" name="delay-minutes" min="0" max="120" placeholder="10">
+                            <p class="help-text">show trains departing in more than X minutes</p>
+                        </div>
+                        <button type="submit">Save</button>
+                    </form>
+                </div>
+
+                <div class="section">
+                    <h2>Select Station</h2>
+                    <form id="station-search-form">
+                        <div class="search-row">
+                            <div class="form-group">
+                                <label for="station-search">Search</label>
+                                <input type="text" id="station-search" name="station-search" placeholder="enter station name" autocomplete="off">
+                            </div>
+                            <button type="button" id="search-stations-btn">Search</button>
+                        </div>
+                    </form>
+                    <div id="station-results"></div>
+                </div>
+
+                <div id="station-status-message"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Load saved networks and check status on page load
         window.addEventListener('DOMContentLoaded', () => {
             checkConnectionStatus();
-            loadNetworks();
         });
-
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleBtn = event.target;
-
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = 'Hide';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = 'Show';
-            }
-        }
 
         async function checkConnectionStatus() {
             try {
@@ -321,157 +395,69 @@
                 const data = await response.json();
 
                 if (data.wifi_connected && data.current_ssid) {
-                    // Connected to WiFi - show different interface
                     showConnectedInterface(data);
+                } else {
+                    showSetupMode();
                 }
             } catch (error) {
                 console.error('Error checking status:', error);
+                showSetupMode();
             }
         }
 
+        function showSetupMode() {
+            document.getElementById('setup-mode').style.display = 'block';
+            document.getElementById('connected-mode').style.display = 'none';
+            loadNetworks();
+        }
+
         function showConnectedInterface(status) {
-            const header = document.querySelector('.header');
-            header.innerHTML = `
-                <h1>Train Display Configuration</h1>
-                <p>Connected via WiFi: ${escapeHtml(status.current_ssid || 'Unknown')}</p>
-            `;
+            document.getElementById('setup-mode').style.display = 'none';
+            document.getElementById('connected-mode').style.display = 'block';
 
-            const content = document.querySelector('.content');
-            content.innerHTML = `
-                <div class="status info">
-                    <strong>✓ Connected to Raspberry Pi via WiFi</strong><br>
-                    You are accessing the configuration interface over your home WiFi network.
-                </div>
+            document.getElementById('current-station').textContent = status.train_station?.name || '—';
+            document.getElementById('current-transport').textContent = getTransportTypeName(status.transport_type || 'U');
+            document.getElementById('current-delay').textContent = (status.delay_minutes || 10) + ' min';
+            document.getElementById('current-wifi').textContent = status.current_ssid || '—';
 
-                <div id="connected-status-message"></div>
+            document.getElementById('delay-minutes').value = status.delay_minutes || 10;
 
-                <div class="section">
-                    <h2 class="section-title">Connection Status</h2>
-                    <p style="margin-bottom: 10px;"><strong>WiFi Network:</strong> ${escapeHtml(status.current_ssid || 'Unknown')}</p>
-                    <p style="margin-bottom: 10px;"><strong>Saved Networks:</strong> ${status.saved_networks_count || 0}</p>
-                    <p class="help-text">The train display is operating normally</p>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="section">
-                    <h2 class="section-title">Departure Delay</h2>
-                    <p class="help-text" style="margin-bottom: 15px;">
-                        Configure how many minutes in the future to show train departures.
-                    </p>
-                    <form id="delay-form" style="margin-bottom: 15px;">
-                        <div class="form-group">
-                            <label for="delay-minutes">Delay (minutes)</label>
-                            <input
-                                type="number"
-                                id="delay-minutes"
-                                name="delay-minutes"
-                                min="0"
-                                max="120"
-                                value="${status.delay_minutes || 10}"
-                                placeholder="Enter delay in minutes"
-                                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                            >
-                            <p class="help-text">Show trains departing in more than this many minutes (0-120)</p>
-                        </div>
-                        <button type="submit" style="margin-top: 10px;">Save Delay</button>
-                    </form>
-                    <p class="help-text"><strong>Current setting:</strong> ${status.delay_minutes || 10} minutes</p>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="section">
-                    <h2 class="section-title">Train Station Configuration</h2>
-
-                    <div style="background: #fff; padding: 15px; border-radius: 8px; border: 2px solid #d1d5db; margin-bottom: 20px;">
-                        <div style="font-size: 12px; color: #6b7280; margin-bottom: 5px;">Currently Displaying</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #1f2937;">
-                            ${escapeHtml(status.train_station?.name || 'Unknown')}
-                        </div>
-                        <div style="font-size: 12px; color: #6b7280; margin-top: 5px;">
-                            Transport: ${getTransportTypeName(status.transport_type || 'U')}
-                        </div>
-                    </div>
-
-                    <form id="station-search-form" style="margin-bottom: 15px;">
-                        <div class="form-group">
-                            <label for="station-search">Search for a new station</label>
-                            <p class="help-text" style="margin-bottom: 10px;">Enter a station name and click Search to find stations</p>
-                            <div style="display: flex; gap: 10px;">
-                                <input
-                                    type="text"
-                                    id="station-search"
-                                    name="station-search"
-                                    placeholder="Enter station name (e.g., Alexanderplatz)"
-                                    autocomplete="off"
-                                    style="flex: 1; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
-                                >
-                                <button type="button" id="search-stations-btn" style="padding: 12px 24px; width: auto; white-space: nowrap;">Search</button>
-                            </div>
-                            <div id="station-results" style="margin-top: 10px;"></div>
-                        </div>
-                    </form>
-                    <div id="station-status-message"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="section">
-                    <h2 class="section-title">Setup Mode</h2>
-                    <p class="help-text" style="margin-bottom: 15px;">
-                        To add or modify WiFi networks, disconnect from the current WiFi or manually activate setup mode on the device.
-                    </p>
-                </div>
-            `;
-
-            // Add event listener for delay form
-            document.getElementById('delay-form').addEventListener('submit', async (e) => {
+            const delayForm = document.getElementById('delay-form');
+            delayForm.onsubmit = async (e) => {
                 e.preventDefault();
                 await updateDelay();
-            });
+            };
 
-            // Add event listener for station search button
-            const searchStationsBtn = document.getElementById('search-stations-btn');
-            const stationSearchInput = document.getElementById('station-search');
+            const searchBtn = document.getElementById('search-stations-btn');
+            const searchInput = document.getElementById('station-search');
 
-            if (searchStationsBtn) {
-                searchStationsBtn.addEventListener('click', () => {
-                    const query = stationSearchInput.value.trim();
-                    if (query) {
-                        searchStations(query);
-                    } else {
-                        const resultsDiv = document.getElementById('station-results');
-                        if (resultsDiv) {
-                            resultsDiv.innerHTML = '<p class="help-text" style="color: #c62828;">Please enter a station name to search.</p>';
-                        }
-                    }
-                });
-            }
+            searchBtn.onclick = () => {
+                const query = searchInput.value.trim();
+                if (query) {
+                    searchStations(query);
+                } else {
+                    showMessage('enter a station name', 'error', 'station-results');
+                }
+            };
 
-            // Also allow search on Enter key
-            if (stationSearchInput) {
-                stationSearchInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const query = e.target.value.trim();
-                        if (query) {
-                            searchStations(query);
-                        }
-                    }
-                });
-            }
+            searchInput.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = e.target.value.trim();
+                    if (query) searchStations(query);
+                }
+            };
         }
 
         function getTransportTypeName(code) {
             const names = {
-                'S': 'S-Bahn (Suburban)',
-                'U': 'U-Bahn (Subway)',
+                'S': 'S-Bahn',
+                'U': 'U-Bahn',
                 'T': 'Tram',
                 'B': 'Bus',
                 'F': 'Ferry',
-                'E': 'Express (IC/ICE)',
-                'R': 'Regional (RB/RE)'
+                'E': 'Express',
+                'R': 'Regional'
             };
             return names[code] || code;
         }
@@ -492,204 +478,127 @@
             const delayMinutes = document.getElementById('delay-minutes').value;
 
             if (!delayMinutes || delayMinutes < 0 || delayMinutes > 120) {
-                showConnectedMessage('Please enter a valid delay between 0 and 120 minutes', 'error');
+                showMessage('enter valid delay (0-120)', 'error', 'connected-status-message');
                 return;
             }
 
             try {
                 const response = await fetch('/api/delay/update', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ delay_minutes: parseInt(delayMinutes) })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showConnectedMessage(data.message, 'success');
-                    // Immediately reload status to show updated value
-                    checkConnectionStatus();
+                    showMessage('delay updated', 'success', 'connected-status-message');
+                    setTimeout(() => checkConnectionStatus(), 1000);
                 } else {
-                    showConnectedMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+                    showMessage('error: ' + (data.error || 'unknown'), 'error', 'connected-status-message');
                 }
-
             } catch (error) {
-                console.error('Error:', error);
-                showConnectedMessage('Network error. Please try again.', 'error');
+                showMessage('network error', 'error', 'connected-status-message');
             }
         }
 
         async function searchStations(query) {
             const resultsDiv = document.getElementById('station-results');
-            if (!resultsDiv) return;
+            resultsDiv.innerHTML = '<p class="help-text mono">searching...</p>';
 
             try {
-                resultsDiv.innerHTML = '<p class="help-text">Searching...</p>';
-                
                 const response = await fetch(`/api/stations/search?query=${encodeURIComponent(query)}`);
                 const data = await response.json();
 
                 if (data.success && data.stations && data.stations.length > 0) {
                     resultsDiv.innerHTML = `
-                        <p class="help-text" style="margin-bottom: 10px; color: #059669; font-weight: 500;">
-                            ✓ Found ${data.stations.length} station${data.stations.length > 1 ? 's' : ''}. Click on a station to change display.
-                        </p>
-                        <div style="max-height: 300px; overflow-y: auto; border: 2px solid #d1d5db; border-radius: 8px; padding: 8px;">
+                        <div class="station-list">
                             ${data.stations.map((station, index) => {
                                 const availableTypes = getAvailableTransportTypes(station.products || {});
                                 const typeLabels = availableTypes.map(t => getTransportTypeName(t)).join(', ');
-                                const dataId = 'station-' + index;
                                 return `
-                                <div
-                                    class="station-item"
-                                    id="${dataId}"
-                                    data-station-id="${escapeHtml(station.id)}"
-                                    data-station-name="${escapeHtml(station.name)}"
-                                    data-available-types="${availableTypes.join(',')}"
-                                    style="padding: 12px; margin-bottom: 8px; background: #fff; border: 2px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s;"
-                                    onclick="handleStationClick('${dataId}')"
-                                    onmouseover="this.style.background='#f0fdf4'; this.style.borderColor='#059669';"
-                                    onmouseout="this.style.background='#fff'; this.style.borderColor='#e5e7eb';"
-                                >
-                                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${escapeHtml(station.name)}</div>
-                                    <div style="font-size: 11px; color: #6b7280;">
-                                        ID: ${escapeHtml(station.id)}
-                                        ${station.distance ? ` • ${Math.round(station.distance)}m away` : ''}
-                                    </div>
-                                    ${availableTypes.length > 0 ? `<div style="font-size: 11px; color: #059669; margin-top: 4px; font-weight: 500;">Available: ${escapeHtml(typeLabels)}</div>` : ''}
-                                    <div style="font-size: 11px; color: #4a5568; margin-top: 6px; font-style: italic;">→ Click to select this station</div>
+                                <div class="station-item" onclick="selectStationForConfig('${escapeHtml(station.id)}', '${escapeHtml(station.name)}', '${availableTypes.join(',')}')">
+                                    <div class="station-name">${escapeHtml(station.name)}</div>
+                                    <div class="station-meta">${escapeHtml(station.id)}${availableTypes.length > 0 ? ' • ' + typeLabels : ''}</div>
                                 </div>
                             `;
                             }).join('')}
                         </div>
                     `;
                 } else {
-                    resultsDiv.innerHTML = '<p class="help-text">No stations found. Try a different search term.</p>';
+                    resultsDiv.innerHTML = '<p class="help-text">no stations found</p>';
                 }
             } catch (error) {
-                console.error('Error searching stations:', error);
-                resultsDiv.innerHTML = '<p class="help-text" style="color: #c62828;">Error searching stations. Please try again.</p>';
+                resultsDiv.innerHTML = '<p class="help-text" style="color: #ff6b6b;">search error</p>';
             }
         }
 
-        function handleStationClick(elementId) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-
-            const stationId = element.getAttribute('data-station-id');
-            const stationName = element.getAttribute('data-station-name');
-            const availableTypesStr = element.getAttribute('data-available-types');
+        function selectStationForConfig(stationId, stationName, availableTypesStr) {
             const availableTypes = availableTypesStr ? availableTypesStr.split(',').filter(t => t) : [];
-
-            showStationSelection(stationId, stationName, availableTypes);
+            showTransportSelection(stationId, stationName, availableTypes);
         }
 
-        function showStationSelection(stationId, stationName, availableTypes) {
+        function showTransportSelection(stationId, stationName, availableTypes) {
             const statusDiv = document.getElementById('station-status-message');
-            if (!statusDiv) return;
 
-            // Scroll to the selection dialog
-            statusDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-            // Always show transport type selection dialog (filter available types if provided)
             const allTransportTypes = [
-                { code: 'S', name: 'S-Bahn (Suburban)' },
-                { code: 'U', name: 'U-Bahn (Subway)' },
+                { code: 'S', name: 'S-Bahn' },
+                { code: 'U', name: 'U-Bahn' },
                 { code: 'T', name: 'Tram' },
                 { code: 'B', name: 'Bus' },
                 { code: 'F', name: 'Ferry' },
-                { code: 'E', name: 'Express (IC/ICE)' },
-                { code: 'R', name: 'Regional (RB/RE)' }
+                { code: 'E', name: 'Express' },
+                { code: 'R', name: 'Regional' }
             ];
 
             const typesToShow = availableTypes.length > 0
                 ? allTransportTypes.filter(t => availableTypes.includes(t.code))
                 : allTransportTypes;
 
-            const transportCheckboxes = typesToShow.map(type => `
-                <label style="display: flex; align-items: center; padding: 10px; background: white; border: 1px solid #d1d5db; border-radius: 6px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s;"
-                    onmouseover="this.style.background='#f9fafb'"
-                    onmouseout="this.style.background='white'">
-                    <input type="checkbox"
-                        class="transport-type-checkbox"
-                        value="${type.code}"
-                        ${availableTypes.includes(type.code) ? 'checked' : ''}
-                        style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
-                    <span style="font-size: 14px; color: #1f2937;">${type.name}</span>
-                </label>
+            const transportOptions = typesToShow.map(type => `
+                <div class="transport-option">
+                    <input type="checkbox" id="transport-${type.code}" value="${type.code}" ${availableTypes.includes(type.code) ? 'checked' : ''}>
+                    <label for="transport-${type.code}">${type.name}</label>
+                </div>
             `).join('');
 
             statusDiv.innerHTML = `
-                <div style="padding: 20px; background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-top: 15px;">
-                    <div style="font-size: 18px; font-weight: 600; color: #92400e; margin-bottom: 10px;">
-                        📍 Selected Station: ${escapeHtml(stationName)}
-                    </div>
-                    <p style="font-size: 14px; color: #78350f; margin-bottom: 15px;">
-                        Select which transport types you want to display (check all that apply):
-                    </p>
-                    ${availableTypes.length > 0 ? `<p class="help-text" style="margin-bottom: 15px; color: #059669; font-weight: 500;">✓ Available at this station: ${availableTypes.map(t => getTransportTypeName(t)).join(', ')}</p>` : ''}
-                    <div id="transport-type-options" style="margin-bottom: 15px;">
-                        ${transportCheckboxes}
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="saveStationConfiguration('${escapeHtml(stationId)}', '${escapeHtml(stationName)}')" style="flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">💾 Save Configuration</button>
-                        <button onclick="document.getElementById('station-status-message').innerHTML = ''" style="flex: 1; padding: 12px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px;">Cancel</button>
+                <div class="transport-selection">
+                    <h2>Select Transport Type</h2>
+                    <p class="help-text mono" style="margin-bottom: 20px;">station: ${escapeHtml(stationName)}</p>
+                    ${transportOptions}
+                    <div class="button-group">
+                        <button onclick="saveStationConfig('${escapeHtml(stationId)}', '${escapeHtml(stationName)}')">Save</button>
+                        <button class="button-secondary" onclick="document.getElementById('station-status-message').innerHTML = ''">Cancel</button>
                     </div>
                 </div>
             `;
+
+            statusDiv.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function saveStationConfiguration(stationId, stationName) {
-            const checkboxes = document.querySelectorAll('.transport-type-checkbox:checked');
+        function saveStationConfig(stationId, stationName) {
+            const checkboxes = document.querySelectorAll('.transport-option input[type="checkbox"]:checked');
             const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
 
             if (selectedTypes.length === 0) {
-                const statusDiv = document.getElementById('station-status-message');
-                if (statusDiv) {
-                    const existingContent = statusDiv.innerHTML;
-                    statusDiv.innerHTML = `
-                        <div style="padding: 15px; background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; margin-bottom: 15px;">
-                            <div style="font-size: 14px; font-weight: 600; color: #991b1b;">
-                                ⚠ Please select at least one transport type
-                            </div>
-                        </div>
-                    ` + existingContent;
-
-                    setTimeout(() => {
-                        const errorDiv = statusDiv.querySelector('div');
-                        if (errorDiv) errorDiv.remove();
-                    }, 3000);
-                }
+                showMessage('select at least one transport type', 'error', 'station-status-message');
                 return;
             }
 
-            // For now, use the first selected type (we'll update backend to support multiple later)
             const transportType = selectedTypes[0];
             selectStation(stationId, stationName, transportType);
         }
 
-        async function selectStation(stationId, stationName, transportType = null) {
+        async function selectStation(stationId, stationName, transportType) {
             const statusDiv = document.getElementById('station-status-message');
-            const resultsDiv = document.getElementById('station-results');
-            const searchInput = document.getElementById('station-search');
-
-            // Use provided transport type or current selection
-            if (!transportType) {
-                transportType = document.getElementById('transport-type-select')?.value || 'U';
-            }
 
             try {
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<div class="status info">Updating station...</div>';
-                }
+                statusDiv.innerHTML = '<p class="message mono">updating...</p>';
 
                 const response = await fetch('/api/station/update', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         station_id: stationId,
                         station_name: stationName,
@@ -700,115 +609,22 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    if (statusDiv) {
-                        const transportTypeName = getTransportTypeName(transportType);
-                        statusDiv.innerHTML = `
-                            <div style="padding: 20px; background: #d1fae5; border: 2px solid #059669; border-radius: 8px; margin-top: 15px;">
-                                <div style="font-size: 18px; font-weight: 600; color: #065f46; margin-bottom: 10px;">
-                                    ✓ Configuration Saved Successfully!
-                                </div>
-                                <p style="font-size: 14px; color: #047857; margin-bottom: 5px;">
-                                    <strong>Station:</strong> ${escapeHtml(stationName)}
-                                </p>
-                                <p style="font-size: 14px; color: #047857; margin-bottom: 10px;">
-                                    <strong>Transport Type:</strong> ${transportTypeName}
-                                </p>
-                                <p style="font-size: 12px; color: #047857;">
-                                    The physical display will update in the next loop (within 60 seconds).
-                                </p>
-                            </div>
-                        `;
-                    }
-
-                    // Clear search results and input
-                    if (resultsDiv) resultsDiv.innerHTML = '';
-                    if (searchInput) searchInput.value = '';
-
-                    // Reload status to show updated station after a delay
+                    statusDiv.innerHTML = `<p class="message success mono">station updated: ${escapeHtml(stationName)}</p>`;
+                    document.getElementById('station-results').innerHTML = '';
+                    document.getElementById('station-search').value = '';
                     setTimeout(() => {
-                        checkConnectionStatus();
-                    }, 3000);
-                } else {
-                    if (statusDiv) {
-                        statusDiv.innerHTML = `
-                            <div style="padding: 15px; background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; margin-top: 15px;">
-                                <div style="font-size: 16px; font-weight: 600; color: #991b1b; margin-bottom: 5px;">
-                                    ✗ Error
-                                </div>
-                                <p style="font-size: 14px; color: #991b1b;">
-                                    ${escapeHtml(data.error || 'Unknown error occurred')}
-                                </p>
-                            </div>
-                        `;
-                    }
-                }
-            } catch (error) {
-                console.error('Error updating station:', error);
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<div class="status error">Network error. Please try again.</div>';
-                }
-            }
-        }
-
-        async function updateTransportType() {
-            const transportTypeSelect = document.getElementById('transport-type-select');
-            const statusDiv = document.getElementById('station-status-message');
-            
-            if (!transportTypeSelect) return;
-
-            const transportType = transportTypeSelect.value;
-
-            try {
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<div class="status info">Updating transport type...</div>';
-                }
-
-                const response = await fetch('/api/transport/update', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ transport_type: transportType })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    if (statusDiv) {
-                        statusDiv.innerHTML = `<div class="status success">${escapeHtml(data.message)}</div>`;
-                    }
-                    
-                    // Reload status to show updated transport type
-                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
                         checkConnectionStatus();
                     }, 2000);
                 } else {
-                    if (statusDiv) {
-                        statusDiv.innerHTML = `<div class="status error">Error: ${escapeHtml(data.error || 'Unknown error')}</div>`;
-                    }
+                    statusDiv.innerHTML = `<p class="message error mono">error: ${escapeHtml(data.error || 'unknown')}</p>`;
                 }
             } catch (error) {
-                console.error('Error updating transport type:', error);
-                if (statusDiv) {
-                    statusDiv.innerHTML = '<div class="status error">Network error. Please try again.</div>';
-                }
+                statusDiv.innerHTML = '<p class="message error mono">network error</p>';
             }
         }
 
-        function showConnectedMessage(message, type) {
-            const statusDiv = document.getElementById('connected-status-message');
-            if (statusDiv) {
-                statusDiv.innerHTML = `<div class="status ${type}">${escapeHtml(message)}</div>`;
-
-                if (type === 'success' || type === 'error') {
-                    setTimeout(() => {
-                        statusDiv.innerHTML = '';
-                    }, 5000);
-                }
-            }
-        }
-
-        // Handle form submission
+        // WiFi form submission
         document.getElementById('wifi-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -816,7 +632,7 @@
             const password = document.getElementById('password').value.trim();
 
             if (!ssid || !password) {
-                showMessage('Please enter both SSID and password', 'error');
+                showMessage('enter ssid and password', 'error', 'status-message');
                 return;
             }
 
@@ -825,36 +641,22 @@
             try {
                 const response = await fetch('/api/wifi/add', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ssid, password })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showMessage(data.message + ' The page will reload once connected.', 'success');
+                    showMessage('connecting...', 'success', 'status-message');
                     document.getElementById('wifi-form').reset();
-
-                    // Reload networks after a delay
-                    setTimeout(() => {
-                        loadNetworks();
-                    }, 2000);
-
-                    // Show message about potential connection loss
-                    setTimeout(() => {
-                        showMessage('Connecting to WiFi... You may need to reconnect to your home WiFi and access the device at its new IP address.', 'info');
-                    }, 3000);
-
+                    setTimeout(() => loadNetworks(), 2000);
                 } else {
-                    showMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+                    showMessage('error: ' + (data.error || 'unknown'), 'error', 'status-message');
                     showLoading(false);
                 }
-
             } catch (error) {
-                console.error('Error:', error);
-                showMessage('Network error. Please try again.', 'error');
+                showMessage('network error', 'error', 'status-message');
                 showLoading(false);
             }
         });
@@ -863,7 +665,6 @@
             try {
                 const response = await fetch('/api/networks');
                 const data = await response.json();
-
                 const networkList = document.getElementById('network-list');
 
                 if (data.networks && data.networks.length > 0) {
@@ -874,53 +675,43 @@
                         </div>
                     `).join('');
                 } else {
-                    networkList.innerHTML = '<p class="help-text">No saved networks yet</p>';
+                    networkList.innerHTML = '<p class="help-text">no saved networks</p>';
                 }
-
             } catch (error) {
-                console.error('Error loading networks:', error);
-                document.getElementById('network-list').innerHTML =
-                    '<p class="help-text">Error loading networks</p>';
+                document.getElementById('network-list').innerHTML = '<p class="help-text">error loading networks</p>';
             }
         }
 
         async function removeNetwork(ssid) {
-            if (!confirm(`Remove network "${ssid}"?`)) {
-                return;
-            }
+            if (!confirm(`remove "${ssid}"?`)) return;
 
             try {
                 const response = await fetch('/api/wifi/remove', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ssid })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showMessage(data.message, 'success');
+                    showMessage('network removed', 'success', 'status-message');
                     loadNetworks();
                 } else {
-                    showMessage('Error: ' + (data.error || 'Unknown error'), 'error');
+                    showMessage('error: ' + (data.error || 'unknown'), 'error', 'status-message');
                 }
-
             } catch (error) {
-                console.error('Error:', error);
-                showMessage('Network error. Please try again.', 'error');
+                showMessage('network error', 'error', 'status-message');
             }
         }
 
-        function showMessage(message, type) {
-            const statusDiv = document.getElementById('status-message');
-            statusDiv.innerHTML = `<div class="status ${type}">${escapeHtml(message)}</div>`;
-
-            if (type === 'success' || type === 'error') {
-                setTimeout(() => {
-                    statusDiv.innerHTML = '';
-                }, 5000);
+        function showMessage(message, type, targetId) {
+            const div = document.getElementById(targetId);
+            if (div) {
+                div.innerHTML = `<p class="message ${type} mono">${escapeHtml(message)}</p>`;
+                if (type === 'success' || type === 'error') {
+                    setTimeout(() => { div.innerHTML = ''; }, 3000);
+                }
             }
         }
 
