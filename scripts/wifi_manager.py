@@ -27,8 +27,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 FONTS_DIR = os.path.join(SCRIPT_DIR, "fonts")
 AP_INTERFACE = "wlan0"
-AP_SSID_DEFAULT = "TrainDisplay-Setup"
-AP_PASSWORD_DEFAULT = "trainsetup123"
+AP_SSID_DEFAULT = "ZB_project_wifi"
+AP_PASSWORD_DEFAULT = "Zuruckbleiben"
 AP_IP = "10.42.0.1"  # NetworkManager's default hotspot IP
 
 # LED matrix globals (will be initialized in main)
@@ -66,6 +66,38 @@ def clear_screen():
             matrix.SwapOnVSync(screen)
     except Exception as e:
         print(f"Screen clear error: {e}")
+
+
+def display_welcome_message(display_time=5):
+    """Display welcome message on boot."""
+    global matrix, screen, font, text_color
+
+    try:
+        print("=" * 50)
+        print("Welcome to")
+        print("Zurückbleiben Bitte Project")
+        print("=" * 50)
+
+        if screen and matrix and font and text_color:
+            from rgbmatrix import graphics
+            screen.Clear()
+            # Line 1: "Welcome to" centered
+            welcome_text = "Welcome to"
+            text_width_1 = len(welcome_text) * 6
+            x_pos_1 = max(3, (192 - text_width_1) // 2)
+            graphics.DrawText(screen, font, x_pos_1, 12, text_color, welcome_text)
+
+            # Line 2: "Zuruckbleiben Bitte" centered (without umlaut for display)
+            project_text = "Zuruckbleiben Bitte"
+            text_width_2 = len(project_text) * 6
+            x_pos_2 = max(3, (192 - text_width_2) // 2)
+            graphics.DrawText(screen, font, x_pos_2, 24, text_color, project_text)
+
+            matrix.SwapOnVSync(screen)
+
+        time.sleep(display_time)
+    except Exception as e:
+        print(f"Welcome display error: {e}")
 
 
 def load_config():
@@ -610,6 +642,9 @@ def main():
         print("Continuing without LED display...")
         matrix = None
         screen = None
+
+    # Display welcome message on first boot
+    display_welcome_message(5)
 
     display_message("WiFi Manager...", 1)
 
