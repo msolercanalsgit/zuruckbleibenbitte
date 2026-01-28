@@ -53,7 +53,8 @@
 
         .current-config {
             margin-bottom: 80px;
-            padding-bottom: 40px;
+            padding: 40px 0;
+            border-top: 1px solid #fff;
             border-bottom: 1px solid #fff;
         }
 
@@ -88,8 +89,8 @@
             padding: 15px 0;
             background: transparent;
             border: none;
-            border-bottom: 1px solid #ffff00;
-            color: #ffff00;
+            border-bottom: 1px solid #ff9900;
+            color: #ff9900;
             font-family: 'Courier New', Courier, monospace;
             font-size: 16px;
         }
@@ -98,7 +99,7 @@
         input[type="password"]:focus,
         input[type="number"]:focus {
             outline: none;
-            border-bottom: 2px solid #ffff00;
+            border-bottom: 2px solid #ff9900;
         }
 
         input::placeholder {
@@ -208,7 +209,7 @@
             height: 20px;
             margin-right: 15px;
             cursor: pointer;
-            accent-color: #ffff00;
+            accent-color: #ff9900;
         }
 
         .transport-option label {
@@ -244,6 +245,37 @@
             margin-top: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+        }
+
+        .delay-form-compact {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .delay-form-compact .form-group {
+            margin-bottom: 0;
+            flex: 0 0 120px;
+        }
+
+        .delay-form-compact input {
+            width: 100%;
+        }
+
+        .delay-form-compact button {
+            margin-top: 0;
+            flex-shrink: 0;
+        }
+
+        .section-compact {
+            margin-bottom: 40px;
+        }
+
+        .section-compact h2 {
+            font-size: 11px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         .network-item {
@@ -359,13 +391,12 @@
 
                 <h2 style="margin-top: 40px; margin-bottom: 30px;">Change Configuration</h2>
 
-                <div class="section">
+                <div class="section-compact">
                     <h2>Departure Delay</h2>
-                    <form id="delay-form">
+                    <form id="delay-form" class="delay-form-compact">
                         <div class="form-group">
                             <label for="delay-minutes">Minutes</label>
                             <input type="number" id="delay-minutes" name="delay-minutes" min="0" max="120" placeholder="10">
-                            <p class="help-text">show trains departing in more than X minutes</p>
                         </div>
                         <button type="submit">Save</button>
                     </form>
@@ -373,6 +404,7 @@
 
                 <div class="section">
                     <h2>Select Station</h2>
+                    <p class="help-text" style="margin-bottom: 20px;">Type the name of the station you want and press search.</p>
                     <form id="station-search-form">
                         <div class="search-row">
                             <div class="form-group">
@@ -576,8 +608,9 @@
 
             statusDiv.innerHTML = `
                 <div class="transport-selection">
-                    <h2>Select Transport Types</h2>
+                    <h2>Select Station</h2>
                     <p class="help-text mono" style="margin-bottom: 20px;">station: ${escapeHtml(stationName)}</p>
+                    <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Select Transport Types</h3>
                     ${transportOptions}
                     <div class="button-group">
                         <button onclick="saveStationConfig('${escapeHtml(stationId)}', '${escapeHtml(stationName)}')">Save</button>
