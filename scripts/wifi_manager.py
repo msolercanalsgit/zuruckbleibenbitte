@@ -646,7 +646,7 @@ def main():
     # Display welcome message on first boot
     display_welcome_message(5)
 
-    display_message("WiFi Manager...", 1)
+    display_message("Activating WiFi manager", 1)
 
     config = load_config()
     if not config:
@@ -655,7 +655,7 @@ def main():
         return
 
     # Check if already connected
-    display_message("Checking WiFi...", 1)
+    display_message("Exploring WiFi connections", 1)
     if is_wifi_connected():
         current_ssid = get_current_ssid()
         print(f"Already connected to: {current_ssid}")

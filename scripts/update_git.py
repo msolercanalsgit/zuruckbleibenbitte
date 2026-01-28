@@ -51,13 +51,13 @@ def display_version_info(screen, matrix, font, text_color, repo_path, update_suc
             screen.Clear()
 
             if update_success:
-                # Line 1: Success message with commit hash
-                line1 = f"Updated: {commit_hash}"
-                # Line 2: Commit date
-                line2 = f"Date: {commit_date}"
+                # Line 1: Success message
+                line1 = f"Update successful!"
+                # Line 2: Version with date
+                line2 = f"v{commit_hash} - {commit_date}"
             else:
-                line1 = "Update FAILED!"
-                line2 = f"Local: {commit_hash}"
+                line1 = "Update failed!"
+                line2 = f"Running v{commit_hash}"
 
             graphics.DrawText(screen, font, 3, 14, text_color, line1)
             graphics.DrawText(screen, font, 3, 28, text_color, line2)
@@ -152,13 +152,13 @@ def update_repository(screen, matrix, font, text_color, repo_url, repo_path, max
 
     for attempt in range(1, max_retries + 1):
         try:
-            log_message(screen, matrix, font, text_color, f"Update {attempt}/{max_retries}...")
+            log_message(screen, matrix, font, text_color, f"Downloading latest version")
 
             if not os.path.exists(os.path.join(repo_path, '.git')):
                 log_message(screen, matrix, font, text_color, "No .git found!")
                 return False, repo_path
 
-            log_message(screen, matrix, font, text_color, "Fetching...", 1)
+            log_message(screen, matrix, font, text_color, "Fetching updates...", 1)
 
             # Fetch all changes
             result = subprocess.run(
@@ -169,7 +169,7 @@ def update_repository(screen, matrix, font, text_color, repo_url, repo_path, max
                 log_message(screen, matrix, font, text_color, f"Fetch fail: {result.returncode}")
                 raise subprocess.CalledProcessError(result.returncode, 'git fetch', result.stdout, result.stderr)
 
-            log_message(screen, matrix, font, text_color, "Resetting...", 1)
+            log_message(screen, matrix, font, text_color, "Installing update...", 1)
 
             # Reset to origin/main
             result = subprocess.run(
@@ -247,19 +247,19 @@ def main():
         font_normal.LoadFont(font_path)
         text_color = graphics.Color(255, 1, 200)
 
-        log_message(screen, matrix, font_normal, text_color, 'Starting...')
+        log_message(screen, matrix, font_normal, text_color, 'Connecting with ZBB HQ')
 
         # Wait for internet
         internet_attempts = 0
         while not check_internet():
             internet_attempts += 1
-            log_message(screen, matrix, font_normal, text_color, f"No wifi #{internet_attempts}", display_time=2)
+            log_message(screen, matrix, font_normal, text_color, f"Connecting #{internet_attempts}", display_time=2)
             if internet_attempts > 30:
-                log_message(screen, matrix, font_normal, text_color, "No internet!")
+                log_message(screen, matrix, font_normal, text_color, "Connection failed!")
                 return
             time.sleep(3)
 
-        log_message(screen, matrix, font_normal, text_color, "Internet OK!")
+        log_message(screen, matrix, font_normal, text_color, "Connected to ZBB HQ")
         
         # Perform the update
         success, repo_path = update_repository(
