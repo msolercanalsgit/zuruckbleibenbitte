@@ -378,6 +378,10 @@
                         <span class="config-value" id="current-transport">—</span>
                     </div>
                     <div class="config-row">
+                        <span class="config-label">Directions</span>
+                        <span class="config-value" id="current-directions">—</span>
+                    </div>
+                    <div class="config-row">
                         <span class="config-label">Delay</span>
                         <span class="config-value" id="current-delay">—</span>
                     </div>
@@ -455,6 +459,7 @@
 
             document.getElementById('current-station').textContent = status.train_station?.name || '—';
             document.getElementById('current-transport').textContent = getTransportTypeNames(status.transport_type || 'U');
+            document.getElementById('current-directions').textContent = getDirectionNames(status.directions || 'N,S,E,W');
             document.getElementById('current-delay').textContent = (status.delay_minutes || 10) + ' min';
             document.getElementById('current-wifi').textContent = status.current_ssid || '—';
 
@@ -504,6 +509,24 @@
             if (!typeString) return '—';
             const types = typeString.split(',').map(t => t.trim());
             return types.map(t => getTransportTypeName(t)).join(', ');
+        }
+
+        function getDirectionName(code) {
+            const names = {
+                'N': 'North',
+                'S': 'South',
+                'E': 'East',
+                'W': 'West'
+            };
+            return names[code.toUpperCase()] || code;
+        }
+
+        function getDirectionNames(directionString) {
+            if (!directionString) return 'All';
+            const directions = directionString.split(',').map(d => d.trim());
+            // If all 4 directions are selected, show "All"
+            if (directions.length === 4) return 'All';
+            return directions.map(d => getDirectionName(d)).join(', ');
         }
 
         function getAvailableTransportTypes(products) {
