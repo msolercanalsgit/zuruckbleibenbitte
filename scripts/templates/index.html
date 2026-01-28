@@ -606,12 +606,34 @@
                 </div>
             `).join('');
 
+            const directionOptions = `
+                <div class="transport-option">
+                    <input type="checkbox" id="direction-N" value="N" checked>
+                    <label for="direction-N">North</label>
+                </div>
+                <div class="transport-option">
+                    <input type="checkbox" id="direction-S" value="S" checked>
+                    <label for="direction-S">South</label>
+                </div>
+                <div class="transport-option">
+                    <input type="checkbox" id="direction-E" value="E" checked>
+                    <label for="direction-E">East</label>
+                </div>
+                <div class="transport-option">
+                    <input type="checkbox" id="direction-W" value="W" checked>
+                    <label for="direction-W">West</label>
+                </div>
+            `;
+
             statusDiv.innerHTML = `
                 <div class="transport-selection">
                     <h2>Select Station</h2>
                     <p class="help-text mono" style="margin-bottom: 20px;">station: ${escapeHtml(stationName)}</p>
                     <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Select Transport Types</h3>
                     ${transportOptions}
+                    <h3 style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin: 25px 0 15px 0;">Select Directions</h3>
+                    <p class="help-text" style="margin-bottom: 15px;">Only show trains heading in these directions</p>
+                    ${directionOptions}
                     <div class="button-group">
                         <button onclick="saveStationConfig('${escapeHtml(stationId)}', '${escapeHtml(stationName)}')">Save</button>
                         <button class="button-secondary" onclick="document.getElementById('station-status-message').innerHTML = ''">Cancel</button>
@@ -623,20 +645,31 @@
         }
 
         function saveStationConfig(stationId, stationName) {
-            const checkboxes = document.querySelectorAll('.transport-option input[type="checkbox"]:checked');
-            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+            // Get transport types
+            const transportCheckboxes = document.querySelectorAll('.transport-option input[type="checkbox"]:checked:not([id^="direction-"])');
+            const selectedTypes = Array.from(transportCheckboxes).map(cb => cb.value);
 
             if (selectedTypes.length === 0) {
                 showMessage('select at least one transport type', 'error', 'station-status-message');
                 return;
             }
 
-            // Join multiple types with comma for backend
+            // Get directions
+            const directionCheckboxes = document.querySelectorAll('.transport-option input[type="checkbox"][id^="direction-"]:checked');
+            const selectedDirections = Array.from(directionCheckboxes).map(cb => cb.value);
+
+            if (selectedDirections.length === 0) {
+                showMessage('select at least one direction', 'error', 'station-status-message');
+                return;
+            }
+
+            // Join multiple types/directions with comma for backend
             const transportTypes = selectedTypes.join(',');
-            selectStation(stationId, stationName, transportTypes);
+            const directions = selectedDirections.join(',');
+            selectStation(stationId, stationName, transportTypes, directions);
         }
 
-        async function selectStation(stationId, stationName, transportType) {
+        async function selectStation(stationId, stationName, transportType, directions) {
             const statusDiv = document.getElementById('station-status-message');
 
             try {
@@ -648,7 +681,8 @@
                     body: JSON.stringify({
                         station_id: stationId,
                         station_name: stationName,
-                        transport_type: transportType
+                        transport_type: transportType,
+                        directions: directions
                     })
                 });
 

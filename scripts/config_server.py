@@ -410,6 +410,7 @@ def update_station():
         station_id = data.get('station_id', '').strip()
         station_name = data.get('station_name', '').strip()
         transport_type = data.get('transport_type', '').strip()
+        directions = data.get('directions', '').strip()  # New: comma-separated directions (N,S,E,W)
 
         if not station_id:
             return jsonify({'success': False, 'error': 'Station ID is required'}), 400
@@ -423,17 +424,55 @@ def update_station():
                 if tt not in valid_transport_types:
                     return jsonify({'success': False, 'error': f'Invalid transport type "{tt}". Must be one of: {", ".join(valid_transport_types)}'}), 400
 
-        logger.info(f"Updating station to: {station_name} (ID: {station_id})" + (f", transport type(s): {transport_type}" if transport_type else ""))
+        # Validate directions if provided (can be comma-separated like "N,E")
+        valid_directions = ['N', 'S', 'E', 'W']
+        if directions:
+            directions_list = [d.strip().upper() for d in directions.split(',') if d.strip()]
+            for d in directions_list:
+                if d not in valid_directions:
+                    return jsonify({'success': False, 'error': f'Invalid direction "{d}". Must be one of: {", ".join(valid_directions)}'}), 400
+
+        logger.info(f"Updating station to: {station_name} (ID: {station_id})" +
+                   (f", transport type(s): {transport_type}" if transport_type else "") +
+                   (f", directions: {directions}" if directions else ""))
 
         config = load_config()
-        config['train_station'] = {
-            'id': station_id,
-            'name': station_name
-        }
+
+        # Get station coordinates from VBB API for direction filtering
+        try:
+            response = requests.get(f'https://v6.vbb.transport.rest/stops/{station_id}', timeout=10)
+            if response.status_code == 200:
+                station_data = response.json()
+                station_location = station_data.get('location', {})
+                config['train_station'] = {
+                    'id': station_id,
+                    'name': station_name,
+                    'latitude': station_location.get('latitude'),
+                    'longitude': station_location.get('longitude')
+                }
+            else:
+                # Fallback if API fails
+                config['train_station'] = {
+                    'id': station_id,
+                    'name': station_name
+                }
+        except Exception as e:
+            logger.warning(f"Could not fetch station coordinates: {e}")
+            config['train_station'] = {
+                'id': station_id,
+                'name': station_name
+            }
 
         # Update transport type(s) if provided (stores as comma-separated string)
         if transport_type:
             config['transport_type'] = transport_type
+
+        # Update directions if provided (stores as comma-separated string like "N,E,W")
+        if directions:
+            config['directions'] = directions
+        elif 'directions' in config:
+            # If no directions provided, remove filter (show all directions)
+            del config['directions']
         
         if save_config(config):
             logger.info(f"Station updated successfully to: {station_name}")
@@ -538,6 +577,7 @@ def get_status():
             'current_ssid': current_ssid,
             'train_station': config.get('train_station', {}),
             'transport_type': config.get('transport_type', 'U'),
+            'directions': config.get('directions', ''),  # New: direction filter
             'saved_networks_count': len(config.get('wifi_networks', [])),
             'delay_minutes': config.get('delay_minutes', 10)
         })

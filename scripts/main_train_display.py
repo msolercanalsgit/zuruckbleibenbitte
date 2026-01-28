@@ -59,6 +59,91 @@ def parse_line_name(line_name):
         return (line_str[:first_digit_pos], line_str[first_digit_pos:])
 
 
+def get_cardinal_direction(origin_lat, origin_lon, dest_lat, dest_lon):
+    """Calculate cardinal direction from origin to destination.
+
+    Returns set of directions (N, S, E, W) that apply.
+    Uses generous tolerance - if destination is even slightly in a direction,
+    it counts as that direction.
+
+    Args:
+        origin_lat: Origin latitude
+        origin_lon: Origin longitude
+        dest_lat: Destination latitude
+        dest_lon: Destination longitude
+
+    Returns:
+        set: Set of direction codes like {'N', 'E'} or {'S'}
+    """
+    directions = set()
+
+    lat_diff = dest_lat - origin_lat
+    lon_diff = dest_lon - origin_lon
+
+    # Use small threshold to be generous
+    threshold = 0.001  # About 100 meters
+
+    if lat_diff > threshold:
+        directions.add('N')
+    if lat_diff < -threshold:
+        directions.add('S')
+    if lon_diff > threshold:
+        directions.add('E')
+    if lon_diff < -threshold:
+        directions.add('W')
+
+    # If no direction detected (destination very close), return all
+    if not directions:
+        return {'N', 'S', 'E', 'W'}
+
+    return directions
+
+
+# Cache for destination coordinates to avoid repeated API calls
+destination_cache = {}
+
+def get_destination_coordinates(destination_name):
+    """Get coordinates for a destination station by name.
+
+    Uses caching to avoid repeated API calls for the same destination.
+
+    Args:
+        destination_name: Name of destination station
+
+    Returns:
+        tuple: (latitude, longitude) or (None, None) if not found
+    """
+    # Check cache first
+    if destination_name in destination_cache:
+        return destination_cache[destination_name]
+
+    try:
+        # Search for station
+        response = requests.get(
+            f'https://v6.vbb.transport.rest/locations',
+            params={'query': destination_name, 'results': 1},
+            timeout=5
+        )
+
+        if response.status_code == 200:
+            results = response.json()
+            if results and len(results) > 0:
+                location = results[0].get('location', {})
+                lat = location.get('latitude')
+                lon = location.get('longitude')
+
+                if lat is not None and lon is not None:
+                    # Cache the result
+                    destination_cache[destination_name] = (lat, lon)
+                    return (lat, lon)
+    except Exception as e:
+        logger.debug(f"Could not fetch coordinates for {destination_name}: {e}")
+
+    # Cache negative result to avoid repeated failures
+    destination_cache[destination_name] = (None, None)
+    return (None, None)
+
+
 def load_config():
     """Load configuration from JSON file."""
     try:
@@ -251,6 +336,43 @@ while True:
         future_departures = data[
             data['Date'] > datetime.now(tz_info) + timedelta(minutes = delay_minutes)].reset_index()
         future_departures = future_departures[['Date','direction','line.name','line.productName']]
+
+        # Apply direction filtering if configured
+        direction_config = config.get('directions', '')
+        if direction_config:
+            selected_directions = set([d.strip().upper() for d in direction_config.split(',') if d.strip()])
+
+            # Get station coordinates
+            station_lat = config.get('train_station', {}).get('latitude')
+            station_lon = config.get('train_station', {}).get('longitude')
+
+            if station_lat and station_lon and selected_directions:
+                # Filter departures by direction
+                filtered_indices = []
+
+                for idx, row in future_departures.iterrows():
+                    destination_name = row['direction']
+
+                    # Get destination coordinates
+                    dest_lat, dest_lon = get_destination_coordinates(destination_name)
+
+                    if dest_lat and dest_lon:
+                        # Calculate which directions this destination is in
+                        dest_directions = get_cardinal_direction(
+                            station_lat, station_lon,
+                            dest_lat, dest_lon
+                        )
+
+                        # Check if any of the train's directions match selected directions
+                        if dest_directions & selected_directions:  # Set intersection
+                            filtered_indices.append(idx)
+                    else:
+                        # If we can't get coordinates, include the departure (fail-safe)
+                        filtered_indices.append(idx)
+
+                if filtered_indices:
+                    future_departures = future_departures.loc[filtered_indices].reset_index(drop=True)
+                    logger.debug(f"Direction filter ({direction_config}) kept {len(filtered_indices)} departures")
 
         # Check if we have enough departures
         transport_types_str = ', '.join(selected_transport_types)
