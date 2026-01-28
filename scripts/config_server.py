@@ -417,8 +417,8 @@ def update_station():
         # Validate transport type(s) if provided (can be comma-separated like "U,T,B")
         valid_transport_types = ['S', 'U', 'T', 'B', 'F', 'E', 'R']
         if transport_type:
-            # Split by comma to support multiple types
-            transport_types_list = [t.strip() for t in transport_type.split(',')]
+            # Split by comma to support multiple types, filter out empty strings
+            transport_types_list = [t.strip() for t in transport_type.split(',') if t.strip()]
             for tt in transport_types_list:
                 if tt not in valid_transport_types:
                     return jsonify({'success': False, 'error': f'Invalid transport type "{tt}". Must be one of: {", ".join(valid_transport_types)}'}), 400
